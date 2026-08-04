@@ -1,0 +1,38 @@
+{
+  "name": "expense-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Трекер расходов: Next.js + NestJS + PostgreSQL/Prisma в монорепозитории",
+  "_comment": "packages/* идут первыми: npm выполняет скрипты воркспейсов по этому порядку, а apps/* зависят от @expense-tracker/db",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:web": "npm run dev -w @expense-tracker/web",
+    "dev:api": "npm run start:dev -w @expense-tracker/api",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:generate": "npm run generate -w @expense-tracker/db",
+    "db:migrate": "npm run migrate -w @expense-tracker/db",
+    "db:studio": "npm run studio -w @expense-tracker/db",
+    "db:seed": "npm run seed -w @expense-tracker/db"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.8.0",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.5.0",
+    "prettier": "^3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.66.0"
+  }
+}

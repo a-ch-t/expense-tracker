@@ -1,0 +1,14 @@
+// Prisma 7: URL подключения задаётся в ../prisma.config.ts, а не здесь.
+// Документация: https://www.prisma.io/docs
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Модели (User, Category, Transaction) добавляются отдельной задачей.
