@@ -11,4 +11,11 @@ datasource db {
   provider = "postgresql"
 }
 
-// Модели (User, Category, Transaction) добавляются отдельной задачей.
+model User {
+  id           String   @id @default(uuid(7))
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

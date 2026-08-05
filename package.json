@@ -27,7 +27,7 @@
     "db:seed": "npm run seed -w @expense-tracker/db"
   },
   "devDependencies": {
-    "@eslint/js": "^10.8.0",
+    "@eslint/js": "^10.0.1",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^16.5.0",
