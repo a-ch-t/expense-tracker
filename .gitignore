@@ -32,3 +32,6 @@ npm-debug.log*
 # Кэш инструментов
 .eslintcache
 coverage/
+
+# Claude Code: локальные настройки конкретной машины
+.claude/settings.local.json
