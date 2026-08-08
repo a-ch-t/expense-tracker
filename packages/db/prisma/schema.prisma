@@ -12,10 +12,29 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid(7))
+  id           String     @id @default(uuid(7))
   name         String
-  email        String   @unique
+  email        String     @unique
   passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  categories   Category[]
+}
+
+/// Категория трат. Принадлежит ровно одному пользователю.
+model Category {
+  id        String   @id @default(uuid(7))
+  name      String
+  /// HEX-цвет вида #rrggbb
+  color     String
+  /// Имя иконки lucide в kebab-case, например shopping-cart
+  icon      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Имя уникально в пределах пользователя. Этот же индекс покрывает выборку всех
+  // категорий пользователя (userId — ведущая колонка), отдельный @@index не нужен.
+  @@unique([userId, name])
 }

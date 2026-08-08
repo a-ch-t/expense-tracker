@@ -10,12 +10,21 @@ export default [
     },
   },
   {
-    // auth и users не должны знать друг о друге — общаются только через contracts
+    // auth, users и categories не знают друг о друге — общаются только через
+    // общие слои contracts/* и common/*. Импортировать разрешено только их барели.
     files: ['src/auth/**/*.ts'],
-    rules: { 'no-restricted-imports': ['error', { patterns: ['**/users/**'] }] },
+    rules: {
+      'no-restricted-imports': ['error', { patterns: ['**/users/**', '**/categories/**'] }],
+    },
   },
   {
     files: ['src/users/**/*.ts'],
-    rules: { 'no-restricted-imports': ['error', { patterns: ['**/auth/**'] }] },
+    rules: {
+      'no-restricted-imports': ['error', { patterns: ['**/auth/**', '**/categories/**'] }],
+    },
+  },
+  {
+    files: ['src/categories/**/*.ts'],
+    rules: { 'no-restricted-imports': ['error', { patterns: ['**/users/**', '**/auth/**'] }] },
   },
 ];

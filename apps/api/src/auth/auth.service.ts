@@ -8,9 +8,9 @@ import {
   type UserCredentials,
   type UserReadModel,
 } from '../contracts/users';
+import type { JwtPayload } from '../common/auth';
 import type { RegisterDto } from './dto/register.dto';
 import type { LoginDto } from './dto/login.dto';
-import type { JwtPayload } from './types/jwt-payload';
 
 const BCRYPT_ROUNDS = 10;
 
