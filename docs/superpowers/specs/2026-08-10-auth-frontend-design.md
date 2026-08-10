@@ -97,13 +97,13 @@ apps/web/
       session/
         api/get-session.ts
         model/user.ts
-        model/session-cookie.ts
         index.ts
     shared/
       api/api-client.ts
       api/api-error.ts
       config/env.ts
       config/routes.ts
+      config/session-cookie.ts
       lib/utils.ts                  переезжает из src/lib/utils.ts
       ui/                           компоненты shadcn, переезжает из src/components/ui/
 ```
@@ -137,13 +137,18 @@ apps/web/
 `shared/config/routes.ts` — константы путей (`/login`, `/register`, `/dashboard`), чтобы редиректы
 в middleware, экшенах и ссылках не разъезжались.
 
+`shared/config/session-cookie.ts` — имя куки (`access_token`) и её опции: `httpOnly: true`,
+`sameSite: 'lax'`, `path: '/'`, `secure` только в production. `maxAge` не задаётся — кука
+сессионная, реальный срок жизни определяет сам JWT.
+
+Константы лежат в `shared`, а не в `entities/session`, из-за middleware: он работает в Edge-рантайме,
+а импорт из бареля `entities/session` затянул бы туда `next/headers`, который в middleware
+недоступен. Имя и опции куки — конфигурация, а не доменная логика, так что место в `shared` для них
+честное.
+
 ### `entities/session`
 
 `model/user.ts` — тип `User` (`id`, `name`, `email`, `createdAt`), зеркало `UserReadModel` API.
-
-`model/session-cookie.ts` — имя куки (`access_token`) и её опции: `httpOnly: true`,
-`sameSite: 'lax'`, `path: '/'`, `secure` только в production. `maxAge` не задаётся — кука
-сессионная, реальный срок жизни определяет сам JWT.
 
 `api/get-session.ts` — `getSession(): Promise<User | null>` в обёртке `cache()`: читает куку, зовёт
 `GET /api/auth/me` с `Authorization: Bearer`, на `401` возвращает `null`. Единственное место, где
