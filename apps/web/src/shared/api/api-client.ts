@@ -48,7 +48,13 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
     throw new ApiError(response.status, await readErrorMessage(response));
   }
 
-  return (await response.json()) as T;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    // Успешный ответ без JSON-тела (например, 204) — не даём наружу голый SyntaxError,
+    // apiFetch остаётся единственной точкой, откуда вызывающий код ждёт только ApiError.
+    throw new ApiError(response.status, GENERIC_ERROR_MESSAGE);
+  }
 }
 
 async function readErrorMessage(response: Response): Promise<string> {
