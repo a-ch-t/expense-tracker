@@ -155,7 +155,10 @@ git commit -m "feat(web): каркас shared-слоя FSD и базовые к�
   - `class ApiError extends Error { readonly status: number }`
   - `apiFetch<T>(path: string, options?: ApiRequestOptions): Promise<T>`, где `ApiRequestOptions = { method?: 'GET' | 'POST'; body?: unknown; token?: string }`
 
-- [ ] **Step 1: Добавить переменные окружения**
+- [ ] **Step 1: Добавить переменные окружения — ВЫПОЛНЯЕТ ПОЛЬЗОВАТЕЛЬ, НЕ АГЕНТ**
+
+Доступ к файлам `.env*` закрыт разрешениями среды. Агент этот шаг не выполняет и на нём не
+останавливается: считать его сделанным и идти дальше. Для справки, что там должно оказаться.
 
 В `.env.example` и в локальный `.env` добавить строку:
 
@@ -434,6 +437,7 @@ git commit -m "feat(web): сущность сессии с чтением тек
 - Create: `apps/web/src/features/auth/model/auth-response.ts`
 - Create: `apps/web/src/features/auth/model/action-result.ts`
 - Create: `apps/web/src/features/auth/model/to-action-error.ts`
+- Create: `apps/web/src/features/auth/model/authenticate.ts`
 - Create: `apps/web/src/features/auth/api/login.action.ts`
 - Create: `apps/web/src/features/auth/api/register.action.ts`
 - Create: `apps/web/src/features/auth/api/logout.action.ts`
@@ -444,6 +448,7 @@ git commit -m "feat(web): сущность сессии с чтением тек
   - `loginSchema`, тип `LoginValues = { email: string; password: string }`
   - `registerSchema`, тип `RegisterValues = { name: string; email: string; password: string }`
   - `AuthActionError = { error: string; field?: 'email' }`
+  - `authenticate(path: '/auth/login' | '/auth/register', body: unknown): Promise<AuthActionError | undefined>`
   - `loginAction(values: LoginValues): Promise<AuthActionError | undefined>`
   - `registerAction(values: RegisterValues): Promise<AuthActionError | undefined>`
   - `logoutAction(): Promise<void>`
@@ -534,19 +539,50 @@ export function toActionError(error: unknown): AuthActionError {
 }
 ```
 
-- [ ] **Step 6: Создать `api/login.action.ts`**
+- [ ] **Step 6: Создать `model/authenticate.ts`**
+
+Общая часть входа и регистрации. Живёт в `model/`, а не в `api/`: файлы с директивой
+`'use server'` могут экспортировать только async-функции-экшены, а этот хелпер — внутренняя
+деталь.
+
+```ts
+import { cookies } from 'next/headers';
+import { apiFetch } from '@/shared/api/api-client';
+import { SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } from '@/shared/config/session-cookie';
+import type { AuthActionError } from './action-result';
+import type { AuthResponse } from './auth-response';
+import { toActionError } from './to-action-error';
+
+/**
+ * Запрос к API и установка куки — то, что у входа и регистрации совпадает дословно.
+ * При успехе возвращает undefined: редирект делает вызывающий экшен, потому что
+ * redirect() обязан быть вне try/catch.
+ */
+export async function authenticate(
+  path: '/auth/login' | '/auth/register',
+  body: unknown,
+): Promise<AuthActionError | undefined> {
+  try {
+    const { accessToken } = await apiFetch<AuthResponse>(path, { method: 'POST', body });
+
+    (await cookies()).set(SESSION_COOKIE_NAME, accessToken, SESSION_COOKIE_OPTIONS);
+  } catch (error) {
+    return toActionError(error);
+  }
+
+  return undefined;
+}
+```
+
+- [ ] **Step 7: Создать `api/login.action.ts`**
 
 ```ts
 'use server';
 
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { apiFetch } from '@/shared/api/api-client';
 import { ROUTES } from '@/shared/config/routes';
-import { SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } from '@/shared/config/session-cookie';
-import type { AuthResponse } from '../model/auth-response';
 import type { AuthActionError } from '../model/action-result';
-import { toActionError } from '../model/to-action-error';
+import { authenticate } from '../model/authenticate';
 import { loginSchema, type LoginValues } from '../model/login.schema';
 
 export async function loginAction(values: LoginValues): Promise<AuthActionError | undefined> {
@@ -557,15 +593,10 @@ export async function loginAction(values: LoginValues): Promise<AuthActionError 
     return { error: 'Проверьте правильность заполнения полей' };
   }
 
-  try {
-    const { accessToken } = await apiFetch<AuthResponse>('/auth/login', {
-      method: 'POST',
-      body: parsed.data,
-    });
+  const failure = await authenticate('/auth/login', parsed.data);
 
-    (await cookies()).set(SESSION_COOKIE_NAME, accessToken, SESSION_COOKIE_OPTIONS);
-  } catch (error) {
-    return toActionError(error);
+  if (failure) {
+    return failure;
   }
 
   // redirect работает через исключение — только вне try/catch, иначе catch его проглотит.
@@ -573,19 +604,15 @@ export async function loginAction(values: LoginValues): Promise<AuthActionError 
 }
 ```
 
-- [ ] **Step 7: Создать `api/register.action.ts`**
+- [ ] **Step 8: Создать `api/register.action.ts`**
 
 ```ts
 'use server';
 
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { apiFetch } from '@/shared/api/api-client';
 import { ROUTES } from '@/shared/config/routes';
-import { SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } from '@/shared/config/session-cookie';
-import type { AuthResponse } from '../model/auth-response';
 import type { AuthActionError } from '../model/action-result';
-import { toActionError } from '../model/to-action-error';
+import { authenticate } from '../model/authenticate';
 import { registerSchema, type RegisterValues } from '../model/register.schema';
 
 export async function registerAction(values: RegisterValues): Promise<AuthActionError | undefined> {
@@ -595,15 +622,10 @@ export async function registerAction(values: RegisterValues): Promise<AuthAction
     return { error: 'Проверьте правильность заполнения полей' };
   }
 
-  try {
-    const { accessToken } = await apiFetch<AuthResponse>('/auth/register', {
-      method: 'POST',
-      body: parsed.data,
-    });
+  const failure = await authenticate('/auth/register', parsed.data);
 
-    (await cookies()).set(SESSION_COOKIE_NAME, accessToken, SESSION_COOKIE_OPTIONS);
-  } catch (error) {
-    return toActionError(error);
+  if (failure) {
+    return failure;
   }
 
   // redirect работает через исключение — только вне try/catch, иначе catch его проглотит.
@@ -611,7 +633,7 @@ export async function registerAction(values: RegisterValues): Promise<AuthAction
 }
 ```
 
-- [ ] **Step 8: Создать `api/logout.action.ts`**
+- [ ] **Step 9: Создать `api/logout.action.ts`**
 
 ```ts
 'use server';
@@ -632,7 +654,7 @@ export async function logoutAction(): Promise<void> {
 }
 ```
 
-- [ ] **Step 9: Проверить типы**
+- [ ] **Step 10: Проверить типы**
 
 ```bash
 npm run typecheck -w @expense-tracker/web
@@ -641,7 +663,7 @@ npm run lint -w @expense-tracker/web
 
 Ожидается: без ошибок. Если типы ругаются на `z.email` — установлен zod 3, вернуться к Task 1 Step 4.
 
-- [ ] **Step 10: Коммит**
+- [ ] **Step 11: Коммит**
 
 ```bash
 git add apps/web/src/features

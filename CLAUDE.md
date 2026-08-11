@@ -10,7 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `GET /api/auth/me` и полный CRUD `/api/categories` (`POST`/`GET`/`GET :id`/`PATCH :id`/
 `DELETE :id`) — все эндпоинты `categories` и `GET /api/auth/me` защищены `JwtAuthGuard`.
 Модули `users`, `auth` и `categories` реализованы через CQRS, см. «Архитектуру» ниже.
-`apps/web/src/components/ui/` пуст.
+На фронте есть страницы `/login`, `/register` и `/dashboard`, построенные по Feature-Sliced
+Design, см. «Архитектуру» ниже.
 
 ## Команды
 
@@ -64,6 +65,54 @@ Prisma 7). npm workspace-скрипты запускают этот файл с 
 корневому `.env` конфиг указывает явно: `config({ path: '../../.env' })` — обычный
 `import 'dotenv/config'` искал бы `.env` рядом с собой и не находил.
 
+**Фронтенд построен по Feature-Sliced Design.** Слои: `src/shared` (переиспользуемое без
+доменной логики — компоненты shadcn, клиент API, конфиги), `src/entities` (доменные сущности,
+например `session`), `src/features` (пользовательские сценарии, например `auth`), `src/views`
+(вёрстка страниц), `src/app` (роутер Next.js и одновременно app-слой FSD: глобальные стили,
+рут-лейаут).
+
+Правило зависимостей строго вниз: `app → views → features → entities → shared`. Слайсы одного
+слоя друг друга не импортируют — внутри слайса используются относительные пути. Каждый слайс вне
+`shared` имеет публичный `index.ts`, и снаружи импортируют только его (`@/features/auth`,
+а не `@/features/auth/ui/login-form`). `shared` — исключение: в него импортируют сегменты
+напрямую (`@/shared/ui/button`), потому что барель на весь слой утянул бы в бандл всё подряд.
+Всё это закреплено блоками `no-restricted-imports` в `apps/web/eslint.config.mjs`.
+
+Слой страниц называется `views`, а не канонический для FSD `pages`: имя `pages` в проекте на
+Next читалось бы как Pages Router.
+
+**Алиасы shadcn указывают в `shared`** (`components.json`): компоненты ставятся в
+`src/shared/ui`, `cn` живёт в `src/shared/lib/utils.ts`.
+
+**Корневой `.env` попадает во фронтенд через `src/instrumentation.ts`.** Next читает `.env`
+только рядом с приложением (`apps/web`), а он лежит в корне монорепозитория. Загрузить его в
+`next.config.ts` нельзя: конфиг исполняется в отдельном процессе, и `process.env` серверного
+рантайма от него не наследуется — переменные молча не доходят до кода, а `getApiUrl()` падает на
+каждом запросе. Поэтому `register()` из `instrumentation.ts` под проверкой
+`NEXT_RUNTIME === 'nodejs'` динамически импортирует `instrumentation.node.ts`, а тот зовёт
+`loadEnvConfig` из `@next/env`. Node-модули нужно держать именно в `instrumentation.node.ts`:
+файл `instrumentation.ts` собирается и для Edge, и прямой импорт `node:path` там ломает бандл.
+Путь к корню считается от `process.cwd()` — Turbopack принимает
+`new URL('...', import.meta.url)` за импорт ресурса и пытается его резолвить.
+
+**Авторизация на фронте — httpOnly cookie, которую ставит Server Action.** Браузер в NestJS
+напрямую не ходит: все запросы к API идут из серверного кода Next через `apiFetch`
+(`src/shared/api/api-client.ts`), поэтому адрес API — серверная переменная `API_URL`
+без префикса `NEXT_PUBLIC_`. `src/proxy.ts` разруливает навигацию, читая `exp` из payload
+токена без проверки подписи — подпись проверяет API. Имя и опции куки лежат в
+`src/shared/config/session-cookie.ts`, а не в `entities/session`, потому что proxy работает
+в Edge-рантайме и не может тянуть `next/headers` через барель сущности.
+
+**`getSession()` возвращает три состояния, а не «пользователь или null»** (`SessionState`):
+`authenticated`, `unauthenticated` (API ответил 401) и `unavailable` (API недоступен или 5xx).
+Различать последние два обязательно. Proxy пускает на закрытые страницы по `exp`, поэтому если
+страница на любой отказ уводит на `/login`, то при живом по `exp` токене без сессии — лежит API,
+пользователя удалили, сменили `JWT_SECRET` — proxy вернёт обратно, и редиректы зациклятся
+(куку руками не почистить, она `httpOnly`). Поэтому `unauthenticated` уводит на роут
+`/logout` (`src/app/logout/route.ts`), который сбрасывает куку и только затем отправляет на
+`/login`, а `unavailable` не редиректит вовсе — страница показывает ошибку. Роут нужен потому,
+что серверный компонент куки менять не может.
+
 **Модули общаются только через `contracts` и `common`.** `auth`, `users` и `categories` не
 импортируют друг друга напрямую (закреплено тремя блоками `no-restricted-imports` в
 `apps/api/eslint.config.mjs`). Общий слой `apps/api/src/contracts/users/` содержит классы
@@ -106,5 +155,6 @@ CORS только для `http://localhost:3000`, `ValidationPipe` с
   дополняют. Неиспользуемые переменные разрешены только с префиксом `_`.
 - Prettier: одинарные кавычки, точки с запятой, `printWidth: 100`, `trailingComma: all`.
 - shadcn/ui настроен на стиль `new-york`, RSC, `baseColor: neutral`, иконки lucide;
-  компоненты ставятся в `@/components/ui`.
+  компоненты ставятся в `@/shared/ui` (каталога `src/components/` в проекте нет —
+  алиасы в `components.json` перенацелены на слой `shared`, см. «Архитектуру»).
 - Комментарии и описания в коде — на русском, как в существующих файлах.
