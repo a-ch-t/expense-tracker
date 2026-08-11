@@ -10,6 +10,15 @@ import { ROUTES } from '@/shared/config/routes';
  * обратно на закрытую страницу — и редиректы зациклились бы.
  */
 export async function GET(request: NextRequest) {
+  // Роут меняет состояние по GET, поэтому отсекаем чужой источник: иначе
+  // <img src=".../logout"> на постороннем сайте разлогинивал бы пользователя.
+  // Свои переходы сюда — серверный redirect, у него Sec-Fetch-Site: same-origin.
+  const fetchSite = request.headers.get('Sec-Fetch-Site');
+
+  if (fetchSite !== null && fetchSite !== 'same-origin' && fetchSite !== 'none') {
+    return new NextResponse(null, { status: 403 });
+  }
+
   await clearSession();
 
   return NextResponse.redirect(new URL(ROUTES.login, request.url));

@@ -55,8 +55,9 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
   try {
     return (await response.json()) as T;
   } catch {
-    // Успешный ответ без JSON-тела (например, 204) — не даём наружу голый SyntaxError,
-    // apiFetch остаётся единственной точкой, откуда вызывающий код ждёт только ApiError.
+    // Успешный ответ без JSON-тела (например, 204) — не даём наружу голый SyntaxError.
+    // Все сбои самого запроса выходят наружу как ApiError; единственное исключение —
+    // незаданный API_URL выше, и это осознанно: ошибку конфигурации глушить нельзя.
     throw new ApiError(response.status, GENERIC_ERROR_MESSAGE);
   }
 }

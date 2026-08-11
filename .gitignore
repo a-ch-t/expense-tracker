@@ -9,6 +9,10 @@ build/
 out/
 *.tsbuildinfo
 
+# Next генерирует его заново и пишет туда путь до distDir, а он у `dev` и `build`
+# разный — трекать значит держать дерево вечно грязным
+next-env.d.ts
+
 # Prisma: клиент генерируется командой `npm run db:generate`
 packages/db/src/generated/*
 !packages/db/src/generated/.gitkeep
