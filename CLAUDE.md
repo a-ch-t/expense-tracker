@@ -103,6 +103,16 @@ Next читалось бы как Pages Router.
 `src/shared/config/session-cookie.ts`, а не в `entities/session`, потому что proxy работает
 в Edge-рантайме и не может тянуть `next/headers` через барель сущности.
 
+**`getSession()` возвращает три состояния, а не «пользователь или null»** (`SessionState`):
+`authenticated`, `unauthenticated` (API ответил 401) и `unavailable` (API недоступен или 5xx).
+Различать последние два обязательно. Proxy пускает на закрытые страницы по `exp`, поэтому если
+страница на любой отказ уводит на `/login`, то при живом по `exp` токене без сессии — лежит API,
+пользователя удалили, сменили `JWT_SECRET` — proxy вернёт обратно, и редиректы зациклятся
+(куку руками не почистить, она `httpOnly`). Поэтому `unauthenticated` уводит на роут
+`/logout` (`src/app/logout/route.ts`), который сбрасывает куку и только затем отправляет на
+`/login`, а `unavailable` не редиректит вовсе — страница показывает ошибку. Роут нужен потому,
+что серверный компонент куки менять не может.
+
 **Модули общаются только через `contracts` и `common`.** `auth`, `users` и `categories` не
 импортируют друг друга напрямую (закреплено тремя блоками `no-restricted-imports` в
 `apps/api/eslint.config.mjs`). Общий слой `apps/api/src/contracts/users/` содержит классы
@@ -145,5 +155,6 @@ CORS только для `http://localhost:3000`, `ValidationPipe` с
   дополняют. Неиспользуемые переменные разрешены только с префиксом `_`.
 - Prettier: одинарные кавычки, точки с запятой, `printWidth: 100`, `trailingComma: all`.
 - shadcn/ui настроен на стиль `new-york`, RSC, `baseColor: neutral`, иконки lucide;
-  компоненты ставятся в `@/components/ui`.
+  компоненты ставятся в `@/shared/ui` (каталога `src/components/` в проекте нет —
+  алиасы в `components.json` перенацелены на слой `shared`, см. «Архитектуру»).
 - Комментарии и описания в коде — на русском, как в существующих файлах.

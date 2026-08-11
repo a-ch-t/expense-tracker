@@ -31,10 +31,14 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  // Вне try: незаданный API_URL — ошибка конфигурации, а не сбой сети. Внутри её
+  // не отличить от лежащего бэкенда, и настоящая причина не попала бы даже в логи.
+  const apiUrl = getApiUrl();
+
   let response: Response;
 
   try {
-    response = await fetch(`${getApiUrl()}${path}`, {
+    response = await fetch(`${apiUrl}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -65,7 +69,8 @@ async function readErrorMessage(response: Response): Promise<string> {
       return message.join('. ');
     }
 
-    return message ?? GENERIC_ERROR_MESSAGE;
+    // Через ||, а не ??: тело вида { message: '' } тоже должно дать осмысленный текст.
+    return message || GENERIC_ERROR_MESSAGE;
   } catch {
     // Тело неJSON — например, прокси вернул HTML-страницу ошибки.
     return GENERIC_ERROR_MESSAGE;
