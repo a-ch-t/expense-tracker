@@ -12,11 +12,11 @@ interface TokenPayload {
 
 /**
  * Читает срок жизни из payload токена, не проверяя подпись: подпись проверяет NestJS,
- * а middleware решает только навигационную задачу — иначе на фронт пришлось бы тащить
+ * а proxy решает только навигационную задачу — иначе на фронт пришлось бы тащить
  * JWT_SECRET и Edge-совместимую криптобиблиотеку.
  *
- * Проверять именно exp, а не наличие куки, обязательно: с протухшим токеном middleware
- * пустил бы на /dashboard, страница получила бы 401 и ушла на /login, а middleware
+ * Проверять именно exp, а не наличие куки, обязательно: с протухшим токеном proxy
+ * пустил бы на /dashboard, страница получила бы 401 и ушла на /login, а proxy
  * увидел бы куку и вернул обратно — бесконечный цикл редиректов.
  */
 function isTokenAlive(token: string | undefined): boolean {
@@ -41,7 +41,7 @@ function isTokenAlive(token: string | undefined): boolean {
   }
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const isAuthenticated = isTokenAlive(request.cookies.get(SESSION_COOKIE_NAME)?.value);
   const { pathname } = request.nextUrl;
 
@@ -56,7 +56,7 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Корень / в matcher не входит: он и так редиректит на /dashboard, где middleware сработает.
+// Корень / в matcher не входит: он и так редиректит на /dashboard, где proxy сработает.
 export const config = {
   matcher: ['/login', '/register', '/dashboard/:path*'],
 };
