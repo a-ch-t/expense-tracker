@@ -1,7 +1,10 @@
+import { fileURLToPath } from 'node:url';
 import { loadEnvConfig } from '@next/env';
 import type { NextConfig } from 'next';
 
-const repoRoot = new URL('../..', import.meta.url).pathname;
+// fileURLToPath, а не URL.pathname: pathname percent-энкодит не-ASCII символы,
+// и путь с кириллицей превращается в несуществующий каталог.
+const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
 
 // .env лежит в корне монорепозитория, а Next ищет его в apps/web.
 // loadEnvConfig — штатный способ подсунуть ему другой каталог.
