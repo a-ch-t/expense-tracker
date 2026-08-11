@@ -10,7 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `GET /api/auth/me` и полный CRUD `/api/categories` (`POST`/`GET`/`GET :id`/`PATCH :id`/
 `DELETE :id`) — все эндпоинты `categories` и `GET /api/auth/me` защищены `JwtAuthGuard`.
 Модули `users`, `auth` и `categories` реализованы через CQRS, см. «Архитектуру» ниже.
-`apps/web/src/components/ui/` пуст.
+На фронте есть страницы `/login`, `/register` и `/dashboard`, построенные по Feature-Sliced
+Design, см. «Архитектуру» ниже.
 
 ## Команды
 
@@ -63,6 +64,33 @@ packages/db @expense-tracker/db   Prisma 7: схема, миграции, ген
 Prisma 7). npm workspace-скрипты запускают этот файл с `cwd = packages/db`, поэтому путь к
 корневому `.env` конфиг указывает явно: `config({ path: '../../.env' })` — обычный
 `import 'dotenv/config'` искал бы `.env` рядом с собой и не находил.
+
+**Фронтенд построен по Feature-Sliced Design.** Слои: `src/shared` (переиспользуемое без
+доменной логики — компоненты shadcn, клиент API, конфиги), `src/entities` (доменные сущности,
+например `session`), `src/features` (пользовательские сценарии, например `auth`), `src/views`
+(вёрстка страниц), `src/app` (роутер Next.js и одновременно app-слой FSD: глобальные стили,
+рут-лейаут).
+
+Правило зависимостей строго вниз: `app → views → features → entities → shared`. Слайсы одного
+слоя друг друга не импортируют — внутри слайса используются относительные пути. Каждый слайс вне
+`shared` имеет публичный `index.ts`, и снаружи импортируют только его (`@/features/auth`,
+а не `@/features/auth/ui/login-form`). `shared` — исключение: в него импортируют сегменты
+напрямую (`@/shared/ui/button`), потому что барель на весь слой утянул бы в бандл всё подряд.
+Всё это закреплено блоками `no-restricted-imports` в `apps/web/eslint.config.mjs`.
+
+Слой страниц называется `views`, а не канонический для FSD `pages`: имя `pages` в проекте на
+Next читалось бы как Pages Router.
+
+**Алиасы shadcn указывают в `shared`** (`components.json`): компоненты ставятся в
+`src/shared/ui`, `cn` живёт в `src/shared/lib/utils.ts`.
+
+**Авторизация на фронте — httpOnly cookie, которую ставит Server Action.** Браузер в NestJS
+напрямую не ходит: все запросы к API идут из серверного кода Next через `apiFetch`
+(`src/shared/api/api-client.ts`), поэтому адрес API — серверная переменная `API_URL`
+без префикса `NEXT_PUBLIC_`. `src/proxy.ts` разруливает навигацию, читая `exp` из payload
+токена без проверки подписи — подпись проверяет API. Имя и опции куки лежат в
+`src/shared/config/session-cookie.ts`, а не в `entities/session`, потому что proxy работает
+в Edge-рантайме и не может тянуть `next/headers` через барель сущности.
 
 **Модули общаются только через `contracts` и `common`.** `auth`, `users` и `categories` не
 импортируют друг друга напрямую (закреплено тремя блоками `no-restricted-imports` в
