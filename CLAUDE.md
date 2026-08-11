@@ -84,6 +84,17 @@ Next читалось бы как Pages Router.
 **Алиасы shadcn указывают в `shared`** (`components.json`): компоненты ставятся в
 `src/shared/ui`, `cn` живёт в `src/shared/lib/utils.ts`.
 
+**Корневой `.env` попадает во фронтенд через `src/instrumentation.ts`.** Next читает `.env`
+только рядом с приложением (`apps/web`), а он лежит в корне монорепозитория. Загрузить его в
+`next.config.ts` нельзя: конфиг исполняется в отдельном процессе, и `process.env` серверного
+рантайма от него не наследуется — переменные молча не доходят до кода, а `getApiUrl()` падает на
+каждом запросе. Поэтому `register()` из `instrumentation.ts` под проверкой
+`NEXT_RUNTIME === 'nodejs'` динамически импортирует `instrumentation.node.ts`, а тот зовёт
+`loadEnvConfig` из `@next/env`. Node-модули нужно держать именно в `instrumentation.node.ts`:
+файл `instrumentation.ts` собирается и для Edge, и прямой импорт `node:path` там ломает бандл.
+Путь к корню считается от `process.cwd()` — Turbopack принимает
+`new URL('...', import.meta.url)` за импорт ресурса и пытается его резолвить.
+
 **Авторизация на фронте — httpOnly cookie, которую ставит Server Action.** Браузер в NestJS
 напрямую не ходит: все запросы к API идут из серверного кода Next через `apiFetch`
 (`src/shared/api/api-client.ts`), поэтому адрес API — серверная переменная `API_URL`
