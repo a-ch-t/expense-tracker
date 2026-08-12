@@ -10,7 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `GET /api/auth/me` и полный CRUD `/api/categories` (`POST`/`GET`/`GET :id`/`PATCH :id`/
 `DELETE :id`) — все эндпоинты `categories` и `GET /api/auth/me` защищены `JwtAuthGuard`.
 Модули `users`, `auth` и `categories` реализованы через CQRS, см. «Архитектуру» ниже.
-На фронте есть страницы `/login`, `/register` и `/dashboard`, построенные по Feature-Sliced
+На фронте есть страницы `/login`, `/register`, `/dashboard`, а также заглушки правовых
+документов `/terms` и `/privacy` (текста в них пока нет), построенные по Feature-Sliced
 Design, см. «Архитектуру» ниже.
 
 ## Команды

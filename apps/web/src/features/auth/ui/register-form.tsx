@@ -1,24 +1,27 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
+import { ROUTES } from '@/shared/config/routes';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
+import { Checkbox } from '@/shared/ui/checkbox';
 import { Input } from '@/shared/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { registerAction } from '../api/register.action';
-import { registerSchema, type RegisterValues } from '../model/register.schema';
+import { registerFormSchema, type RegisterFormValues } from '../model/register.schema';
 
 export function RegisterForm() {
   const [formError, setFormError] = useState<string | null>(null);
-  const form = useForm<RegisterValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '' },
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: { name: '', email: '', password: '', acceptedTerms: false },
   });
 
-  async function onSubmit(values: RegisterValues) {
+  async function onSubmit(values: RegisterFormValues) {
     setFormError(null);
 
     // Успех уводит редиректом, поэтому результат приходит только при неудаче.
@@ -83,6 +86,42 @@ export function RegisterForm() {
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="acceptedTerms"
+          render={({ field }) => (
+            <FormItem>
+              <div className="flex items-start gap-2">
+                <FormControl>
+                  <Checkbox
+                    name={field.name}
+                    ref={field.ref}
+                    checked={field.value}
+                    // onCheckedChange отдаёт ещё и 'indeterminate' — в форму пускаем только boolean.
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                    onBlur={field.onBlur}
+                    disabled={field.disabled}
+                    className="mt-0.5"
+                  />
+                </FormControl>
+                {/* Ссылки внутри label кликаются сами по себе: по спецификации label не
+                    переключает чекбокс, когда клик пришёлся на интерактивный потомок. */}
+                <FormLabel className="block text-sm leading-snug font-normal">
+                  Согласен с{' '}
+                  <Link href={ROUTES.terms} className="underline underline-offset-4">
+                    пользовательским соглашением
+                  </Link>{' '}
+                  и{' '}
+                  <Link href={ROUTES.privacy} className="underline underline-offset-4">
+                    политикой обработки данных
+                  </Link>
+                </FormLabel>
+              </div>
               <FormMessage />
             </FormItem>
           )}

@@ -4,16 +4,21 @@ import { redirect } from 'next/navigation';
 import { ROUTES } from '@/shared/config/routes';
 import { INVALID_INPUT_MESSAGE, type AuthActionError } from '../model/action-result';
 import { authenticate } from '../model/authenticate';
-import { registerSchema, type RegisterValues } from '../model/register.schema';
+import { registerFormSchema, type RegisterFormValues } from '../model/register.schema';
 
-export async function registerAction(values: RegisterValues): Promise<AuthActionError | undefined> {
-  const parsed = registerSchema.safeParse(values);
+export async function registerAction(
+  values: RegisterFormValues,
+): Promise<AuthActionError | undefined> {
+  const parsed = registerFormSchema.safeParse(values);
 
   if (!parsed.success) {
     return { error: INVALID_INPUT_MESSAGE };
   }
 
-  const failure = await authenticate('/auth/register', parsed.data);
+  // Согласие остаётся на фронте: API его не принимает и на лишнее поле ответит 400.
+  const { acceptedTerms: _acceptedTerms, ...credentials } = parsed.data;
+
+  const failure = await authenticate('/auth/register', credentials);
 
   if (failure) {
     return failure;
