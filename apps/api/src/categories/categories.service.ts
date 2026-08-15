@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { Prisma } from '@expense-tracker/db';
+import type { CategoryReadModel } from '../contracts/categories';
 import { GetUserByIdQuery, type UserReadModel } from '../contracts/users';
 import { CategoriesRepository } from './categories.repository';
-import type { CategoryReadModel } from './category.read-model';
 import type { CreateCategoryDto } from './dto/create-category.dto';
 import type { UpdateCategoryDto } from './dto/update-category.dto';
 
@@ -84,6 +84,10 @@ export class CategoriesService {
     try {
       await this.categoriesRepository.remove(id, userId);
     } catch (error) {
+      if (isPrismaError(error, FOREIGN_KEY_VIOLATION)) {
+        // Здесь P2003 значит не «нет пользователя», а Restrict со стороны Transaction
+        throw new ConflictException('Нельзя удалить категорию, пока в ней есть транзакции');
+      }
       throw this.mapPrismaError(error);
     }
   }

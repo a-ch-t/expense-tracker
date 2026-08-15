@@ -12,29 +12,58 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(uuid(7))
+  id           String        @id @default(uuid(7))
   name         String
-  email        String     @unique
+  email        String        @unique
   passwordHash String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   categories   Category[]
+  transactions Transaction[]
 }
 
 /// Категория трат. Принадлежит ровно одному пользователю.
 model Category {
-  id        String   @id @default(uuid(7))
-  name      String
+  id           String        @id @default(uuid(7))
+  name         String
   /// HEX-цвет вида #rrggbb
-  color     String
+  color        String
   /// Имя иконки lucide в kebab-case, например shopping-cart
-  icon      String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  icon         String
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
 
   // Имя уникально в пределах пользователя. Этот же индекс покрывает выборку всех
   // категорий пользователя (userId — ведущая колонка), отдельный @@index не нужен.
   @@unique([userId, name])
+}
+
+enum TransactionType {
+  income
+  expense
+}
+
+/// Доход или расход пользователя. Всегда привязан к категории.
+model Transaction {
+  id          String          @id @default(uuid(7))
+  /// Всегда положительная сумма; знак операции определяется полем type
+  amount      Decimal         @db.Decimal(12, 2)
+  type        TransactionType
+  description String
+  /// Дата операции — не путать с createdAt, временем внесения записи в систему
+  date        DateTime
+  categoryId  String
+  // Restrict, а не Cascade: удаление категории не должно уносить историю трат.
+  // Prisma вернёт P2003, который categories превращает в 409.
+  category    Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Покрывает и выборку всех транзакций пользователя, и фильтр по периоду
+  @@index([userId, date])
 }

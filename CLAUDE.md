@@ -4,30 +4,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Состояние проекта
 
-Каркас монорепозитория с авторизацией и категориями трат. В `schema.prisma` есть модели `User`
-и `Category` (FK `userId` на `User`, `onDelete: Cascade`, `@@unique([userId, name])`). У API,
-помимо `GET /api/health`, есть `POST /api/auth/register`, `POST /api/auth/login`,
-`GET /api/auth/me` и полный CRUD `/api/categories` (`POST`/`GET`/`GET :id`/`PATCH :id`/
-`DELETE :id`) — все эндпоинты `categories` и `GET /api/auth/me` защищены `JwtAuthGuard`.
-Модули `users`, `auth` и `categories` реализованы через CQRS, см. «Архитектуру» ниже.
+Монорепозиторий с авторизацией, категориями трат и учётом доходов/расходов. В `schema.prisma`
+есть модели `User`, `Category` (FK `userId` на `User`, `onDelete: Cascade`,
+`@@unique([userId, name])`) и `Transaction` (`amount Decimal(12, 2)`, enum
+`TransactionType { income expense }`, FK `userId` с `Cascade` и `categoryId` с **`Restrict`**,
+`@@index([userId, date])`). У API, помимо `GET /api/health`, есть `POST /api/auth/register`,
+`POST /api/auth/login`, `GET /api/auth/me` и полный CRUD `/api/categories` и
+`/api/transactions` (`POST`/`GET`/`GET :id`/`PATCH :id`/`DELETE :id`) — все эндпоинты
+`categories`, `transactions` и `GET /api/auth/me` защищены `JwtAuthGuard`. Модули `users`,
+`auth`, `categories` и `transactions` реализованы через CQRS, см. «Архитектуру» ниже.
 На фронте есть страницы `/login`, `/register`, `/dashboard`, а также заглушки правовых
 документов `/terms` и `/privacy` (текста в них пока нет), построенные по Feature-Sliced
-Design, см. «Архитектуру» ниже.
+Design, см. «Архитектуру» ниже. **UI транзакций и категорий ещё нет** — фронт про них
+не знает.
+
+`GET /api/transactions` принимает необязательные `year` и `month` и возвращает
+`{ items, summary: { income, expense, balance } }`: список за период и агрегаты по нему же
+(`groupBy` считает БД). `month` без `year` даёт 400. Границы периода — полуинтервал в UTC,
+чтобы не зависеть от таймзоны сервера.
 
 ## Команды
 
 Все команды запускаются из корня репозитория.
 
-| Команда                                           | Что делает                                       |
-| ------------------------------------------------- | ------------------------------------------------ |
-| `npm install`                                     | Установить зависимости всех workspace            |
-| `npm run db:up` / `db:down`                       | PostgreSQL 17 в Docker (порт 5432)               |
-| `npm run db:generate`                             | Prisma Client → `packages/db/src/generated/`     |
-| `npm run db:migrate`                              | `prisma migrate dev`                             |
-| `npm run db:seed` / `db:studio`                   | Сид и Prisma Studio                              |
-| `npm run dev:api`                                 | NestJS в watch-режиме, http://localhost:3001/api |
-| `npm run dev:web`                                 | Next.js, http://localhost:3000                   |
-| `npm run lint` / `format` / `typecheck` / `build` | По всему монорепо                                |
+| Команда                                           | Что делает                                                  |
+| ------------------------------------------------- | ----------------------------------------------------------- |
+| `npm install`                                     | Установить зависимости всех workspace                       |
+| `npm run db:up` / `db:down`                       | PostgreSQL 17 в Docker (порт 5432)                          |
+| `npm run db:generate`                             | Prisma Client → `packages/db/src/generated/`                |
+| `npm run db:migrate`                              | `prisma migrate dev`                                        |
+| `npm run build -w @expense-tracker/db`            | Клиент → `packages/db/dist/`, обязателен после правки схемы |
+| `npm run db:seed` / `db:studio`                   | Сид и Prisma Studio                                         |
+| `npm run dev:api`                                 | NestJS в watch-режиме, http://localhost:3001/api            |
+| `npm run dev:web`                                 | Next.js, http://localhost:3000                              |
+| `npm run lint` / `format` / `typecheck` / `build` | По всему монорепо                                           |
 
 `dev:api` и `dev:web` — в разных терминалах: `npm run --workspaces` выполняет скрипты
 последовательно и не поднимет два dev-сервера сразу.
@@ -58,8 +68,19 @@ packages/db @expense-tracker/db   Prisma 7: схема, миграции, ген
 весь сгенерированный клиент. Потребители импортируют только из `@expense-tracker/db`.
 
 **`packages/db/src/generated/` не в git.** До первого `npm run db:generate` импорт
-`./generated/client` не резолвится, и `typecheck`/`build` падают. Любая правка `schema.prisma`
-требует повторной генерации.
+`./generated/client` не резолвится, и `typecheck`/`build` падают.
+
+**Одного `db:generate` после правки схемы мало — нужен `npm run build -w @expense-tracker/db`.**
+Потребители импортируют `@expense-tracker/db`, а `exports` пакета указывает на `dist/`, не на
+`src/` (алиасов `paths` на исходники нет). `prisma generate` пишет в `src/generated/`, перенести
+это в `dist/` может только `tsc`, а его запускает лишь скрипт `build`
+(`npm run generate && tsc`) — `typecheck` у пакета это `tsc --noEmit` и не эмитит ничего.
+Поэтому пока `dist/` не пересобран, новые модели снаружи не видны:
+`TS2305: Module '"@expense-tracker/db"' has no exported member 'TransactionType'`. Корневой
+`npm run build` делает это сам (`packages/*` идут раньше `apps/*`, см. выше), а
+`npm run typecheck`, `npm test -w @expense-tracker/api` и `npm run dev:api` — нет, они читают
+устаревший `dist/`. Рабочий порядок: `db:migrate` (он сам зовёт `generate`) →
+`build -w @expense-tracker/db` → всё остальное.
 
 **URL подключения задаётся в `packages/db/prisma.config.ts`, а не в `schema.prisma`** (так в
 Prisma 7). npm workspace-скрипты запускают этот файл с `cwd = packages/db`, поэтому путь к
@@ -114,20 +135,32 @@ Next читалось бы как Pages Router.
 `/login`, а `unavailable` не редиректит вовсе — страница показывает ошибку. Роут нужен потому,
 что серверный компонент куки менять не может.
 
-**Модули общаются только через `contracts` и `common`.** `auth`, `users` и `categories` не
-импортируют друг друга напрямую (закреплено тремя блоками `no-restricted-imports` в
-`apps/api/eslint.config.mjs`). Общий слой `apps/api/src/contracts/users/` содержит классы
-команд/запросов CQRS (`@nestjs/cqrs`) и read-модели; `users` регистрирует хендлеры для них,
-`auth` и `categories` вызывают их через `CommandBus`/`QueryBus` (например, `categories` проверяет
-существование владельца через `GetUserByIdQuery` перед созданием категории). `users` —
-единственный владелец таблицы `User` и ничего не экспортирует из своего модуля; `auth` —
+**Модули общаются только через `contracts` и `common`.** `auth`, `users`, `categories` и
+`transactions` не импортируют друг друга напрямую (закреплено четырьмя блоками
+`no-restricted-imports` в `apps/api/eslint.config.mjs`). Общие слои
+`apps/api/src/contracts/users/` и `apps/api/src/contracts/categories/` содержат классы
+команд/запросов CQRS (`@nestjs/cqrs`) и read-модели; модуль-владелец таблицы регистрирует
+хендлеры для них в своей папке `handlers/`, остальные вызывают их через `CommandBus`/`QueryBus`.
+Так `categories` проверяет существование владельца через `GetUserByIdQuery` перед созданием
+категории, а `transactions` — и владельца, и категорию (`GetCategoryByIdQuery`), плюс
+подставляет категории в список одним `GetCategoriesByUserQuery` вместо запроса на транзакцию.
+Каждая таблица имеет ровно одного владельца (`users` → `User`, `categories` → `Category`,
+`transactions` → `Transaction`), и владелец ничего не экспортирует из своего модуля; `auth` —
 единственный, кто знает про `bcryptjs`. Импортировать из общих слоёв можно только их барели
 (`index.ts`) — `no-restricted-imports` матчит сырую строку импорта и блокирует прямые пути вида
-`'../contracts/users/user.read-model'`, но пропускает `'../contracts/users'`.
+`'../contracts/users/user.read-model'`, но пропускает `'../contracts/users'`. Поэтому
+`CategoryReadModel` живёт в `contracts/categories/`, а не внутри модуля `categories`:
+её типом пользуется `transactions`.
+
+**`Transaction.categoryId` объявлен с `onDelete: Restrict`**, чтобы удаление категории не уносило
+историю трат. Из-за этого `P2003` в `CategoriesService.remove` значит «категорию держат
+транзакции» (409), а не «пользователь не найден», как в остальных методах, — там код
+обрабатывается отдельно, до общего `mapPrismaError`.
 
 **JWT-инфраструктура вынесена в `apps/api/src/common/auth/`** (`AuthCoreModule`, `JwtAuthGuard`,
-`CurrentUser`, `JwtPayload`) — она нужна и `auth`, и `categories`, а `auth`-модуль как фича-модуль
-не может быть импортирован другими фичами напрямую. `AuthCoreModule` регистрирует
+`CurrentUser`, `JwtPayload`) — она нужна и `auth`, и `categories`, и `transactions`, а
+`auth`-модуль как фича-модуль не может быть импортирован другими фичами напрямую.
+`AuthCoreModule` регистрирует
 `JwtModule.registerAsync` и экспортирует `JwtModule` + `JwtAuthGuard`; сам он не глобальный —
 модули, которым нужна авторизация, импортируют его явно в свои `imports`.
 

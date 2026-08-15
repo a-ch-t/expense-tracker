@@ -10,21 +10,41 @@ export default [
     },
   },
   {
-    // auth, users и categories не знают друг о друге — общаются только через
-    // общие слои contracts/* и common/*. Импортировать разрешено только их барели.
+    // auth, users, categories и transactions не знают друг о друге — общаются только
+    // через общие слои contracts/* и common/*. Импортировать разрешено только их барели.
     files: ['src/auth/**/*.ts'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: ['**/users/**', '**/categories/**'] }],
+      'no-restricted-imports': [
+        'error',
+        { patterns: ['**/users/**', '**/categories/**', '**/transactions/**'] },
+      ],
     },
   },
   {
     files: ['src/users/**/*.ts'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: ['**/auth/**', '**/categories/**'] }],
+      'no-restricted-imports': [
+        'error',
+        { patterns: ['**/auth/**', '**/categories/**', '**/transactions/**'] },
+      ],
     },
   },
   {
     files: ['src/categories/**/*.ts'],
-    rules: { 'no-restricted-imports': ['error', { patterns: ['**/users/**', '**/auth/**'] }] },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: ['**/users/**', '**/auth/**', '**/transactions/**'] },
+      ],
+    },
+  },
+  {
+    files: ['src/transactions/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: ['**/users/**', '**/auth/**', '**/categories/**'] },
+      ],
+    },
   },
 ];
