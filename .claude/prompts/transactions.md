@@ -15,7 +15,7 @@
 - GET /transactions/:id, PATCH /transactions/:id, DELETE /transactions/:id
 
 ## Паттерн
-- Следуй структуре модуля из src/modules/categories/
+- Следуй структуре модуля из apps/api/src/categories/
 - Взаимодействие через CQRS
 
 ## Ограничения
