@@ -5,7 +5,7 @@ import { Prisma } from '@expense-tracker/db';
 import { GetUserByIdQuery } from '../contracts/users';
 import { CategoriesRepository } from './categories.repository';
 import { CategoriesService } from './categories.service';
-import type { CategoryReadModel } from './category.read-model';
+import type { CategoryReadModel } from '../contracts/categories';
 
 const prismaError = (code: string): Prisma.PrismaClientKnownRequestError =>
   new Prisma.PrismaClientKnownRequestError('mock', { code, clientVersion: 'test' });
@@ -190,6 +190,14 @@ describe('CategoriesService', () => {
 
       await expect(service.remove('user-1', 'category-1')).rejects.toBeInstanceOf(
         NotFoundException,
+      );
+    });
+
+    it('превращает P2003 в ConflictException: категорию держат транзакции', async () => {
+      repository.remove.mockRejectedValue(prismaError('P2003'));
+
+      await expect(service.remove('user-1', 'category-1')).rejects.toBeInstanceOf(
+        ConflictException,
       );
     });
 

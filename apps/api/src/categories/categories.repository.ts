@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Category, Prisma } from '@expense-tracker/db';
+import type { CategoryReadModel } from '../contracts/categories';
 import { PrismaService } from '../prisma/prisma.service';
-import type { CategoryReadModel } from './category.read-model';
 
 @Injectable()
 export class CategoriesRepository {

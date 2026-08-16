@@ -12,8 +12,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser, JwtAuthGuard, type JwtPayload } from '../common/auth';
+import type { CategoryReadModel } from '../contracts/categories';
 import { CategoriesService } from './categories.service';
-import type { CategoryReadModel } from './category.read-model';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
