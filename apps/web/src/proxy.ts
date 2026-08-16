@@ -4,6 +4,13 @@ import { SESSION_COOKIE_NAME } from '@/shared/config/session-cookie';
 
 const AUTH_ROUTES: readonly string[] = [ROUTES.login, ROUTES.register];
 
+/** Разделы за авторизацией — те же, что перечислены в matcher внизу файла. */
+const PRIVATE_ROUTES: readonly string[] = [
+  ROUTES.dashboard,
+  ROUTES.transactions,
+  ROUTES.categories,
+];
+
 const MILLISECONDS_IN_SECOND = 1000;
 
 interface TokenPayload {
@@ -45,7 +52,7 @@ export function proxy(request: NextRequest) {
   const isAuthenticated = isTokenAlive(request.cookies.get(SESSION_COOKIE_NAME)?.value);
   const { pathname } = request.nextUrl;
 
-  if (!isAuthenticated && pathname.startsWith(ROUTES.dashboard)) {
+  if (!isAuthenticated && PRIVATE_ROUTES.some((route) => pathname.startsWith(route))) {
     return NextResponse.redirect(new URL(ROUTES.login, request.url));
   }
 
@@ -58,5 +65,11 @@ export function proxy(request: NextRequest) {
 
 // Корень / в matcher не входит: он и так редиректит на /dashboard, где proxy сработает.
 export const config = {
-  matcher: ['/login', '/register', '/dashboard/:path*'],
+  matcher: [
+    '/login',
+    '/register',
+    '/dashboard/:path*',
+    '/transactions/:path*',
+    '/categories/:path*',
+  ],
 };
