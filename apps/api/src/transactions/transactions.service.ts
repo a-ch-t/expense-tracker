@@ -67,9 +67,15 @@ export class TransactionsService {
 
   async findAll(userId: string, query: QueryTransactionsDto): Promise<TransactionsPage> {
     const period = this.buildPeriod(query);
+    const { page, limit } = query;
 
-    const [records, summary, categories] = await Promise.all([
-      this.transactionsRepository.findAllByUser(userId, period),
+    const [records, total, summary, categories] = await Promise.all([
+      this.transactionsRepository.findAllByUser(userId, period, {
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.transactionsRepository.countByUser(userId, period),
+      // Без skip/take: сводка описывает весь период, а не текущую страницу
       this.transactionsRepository.summarize(userId, period),
       // Одним запросом на весь список, а не по категории на транзакцию
       this.queryBus.execute<GetCategoriesByUserQuery, CategoryReadModel[]>(
@@ -87,7 +93,11 @@ export class TransactionsService {
       return this.toReadModel(record, category);
     });
 
-    return { items, summary };
+    return {
+      items,
+      summary,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async findOne(userId: string, id: string): Promise<TransactionReadModel> {

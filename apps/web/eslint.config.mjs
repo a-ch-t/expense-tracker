@@ -18,7 +18,7 @@ const config = [
         {
           patterns: [
             {
-              group: ['@/app/**', '@/views/**', '@/features/**', '@/entities/**'],
+              group: ['@/app/**', '@/views/**', '@/widgets/**', '@/features/**', '@/entities/**'],
               message: 'shared — нижний слой FSD и о вышестоящих слоях не знает.',
             },
           ],
@@ -34,7 +34,7 @@ const config = [
         {
           patterns: [
             {
-              group: ['@/app/**', '@/views/**', '@/features/**'],
+              group: ['@/app/**', '@/views/**', '@/widgets/**', '@/features/**'],
               message: 'entities импортирует только shared.',
             },
             {
@@ -54,7 +54,7 @@ const config = [
         {
           patterns: [
             {
-              group: ['@/app/**', '@/views/**'],
+              group: ['@/app/**', '@/views/**', '@/widgets/**'],
               message: 'features импортирует только entities и shared.',
             },
             {
@@ -64,6 +64,30 @@ const config = [
             {
               group: ['@/entities/*/**'],
               message: 'Импорт только через публичный index.ts слайса: @/entities/session.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/widgets/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/app/**', '@/views/**'],
+              message: 'widgets импортирует только features, entities и shared.',
+            },
+            {
+              group: ['@/widgets/**'],
+              message: 'Внутри слайса — относительные пути, соседний слайс трогать нельзя.',
+            },
+            {
+              group: ['@/features/*/**', '@/entities/*/**'],
+              message: 'Импорт только через публичный index.ts слайса.',
             },
           ],
         },
@@ -83,7 +107,7 @@ const config = [
               message: 'Внутри слайса — относительные пути, соседний слайс трогать нельзя.',
             },
             {
-              group: ['@/features/*/**', '@/entities/*/**'],
+              group: ['@/widgets/*/**', '@/features/*/**', '@/entities/*/**'],
               message: 'Импорт только через публичный index.ts слайса.',
             },
           ],
@@ -99,7 +123,7 @@ const config = [
         {
           patterns: [
             {
-              group: ['@/views/*/**', '@/features/*/**', '@/entities/*/**'],
+              group: ['@/views/*/**', '@/widgets/*/**', '@/features/*/**', '@/entities/*/**'],
               message: 'Импорт только через публичный index.ts слайса.',
             },
           ],

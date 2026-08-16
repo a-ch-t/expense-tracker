@@ -6,9 +6,7 @@ export const metadata: Metadata = {
   description: 'Трекер расходов',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru">
       <body className="antialiased">{children}</body>

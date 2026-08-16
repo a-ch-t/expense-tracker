@@ -1,10 +1,9 @@
 import 'server-only';
 
 import { cache } from 'react';
-import { cookies } from 'next/headers';
 import { apiFetch } from '@/shared/api/api-client';
 import { ApiError } from '@/shared/api/api-error';
-import { SESSION_COOKIE_NAME } from '@/shared/config/session-cookie';
+import { getSessionToken } from '@/shared/api/session-auth';
 import type { SessionState } from '../model/session-state';
 import type { User } from '../model/user';
 
@@ -20,7 +19,7 @@ const UNAUTHORIZED_STATUS = 401;
  * не зациклятся ли редиректы между proxy и закрытой страницей.
  */
 export const getSession = cache(async (): Promise<SessionState> => {
-  const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
+  const token = await getSessionToken();
 
   if (!token) {
     return { status: 'unauthenticated' };

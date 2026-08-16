@@ -73,13 +73,15 @@ npm run dev:web            # фронтенд на http://localhost:3000
 Все маршруты живут под префиксом `/api`. Кроме `GET /api/health`, `POST /api/auth/register`
 и `POST /api/auth/login`, требуется заголовок `Authorization: Bearer <token>`.
 
-| Метод и маршрут                                                   | Что делает                                                      |
-| ----------------------------------------------------------------- | --------------------------------------------------------------- |
-| `POST /api/auth/register`, `POST /api/auth/login`                 | Регистрация и вход, возвращают `accessToken`                    |
-| `GET /api/auth/me`                                                | Текущий пользователь                                            |
-| `POST`/`GET`/`GET :id`/`PATCH :id`/`DELETE :id` `/api/categories` | CRUD категорий                                                  |
-| `POST`/`GET :id`/`PATCH :id`/`DELETE :id` `/api/transactions`     | CRUD транзакций                                                 |
-| `GET /api/transactions?year=&month=`                              | Транзакции за период плюс сводка `{ income, expense, balance }` |
+| Метод и маршрут                                                   | Что делает                                   |
+| ----------------------------------------------------------------- | -------------------------------------------- |
+| `POST /api/auth/register`, `POST /api/auth/login`                 | Регистрация и вход, возвращают `accessToken` |
+| `GET /api/auth/me`                                                | Текущий пользователь                         |
+| `POST`/`GET`/`GET :id`/`PATCH :id`/`DELETE :id` `/api/categories` | CRUD категорий                               |
+| `POST`/`GET :id`/`PATCH :id`/`DELETE :id` `/api/transactions`     | CRUD транзакций                              |
+| `GET /api/transactions?year=&month=&page=&limit=`                 | Страница транзакций, сводка и `pagination`   |
 
-`year` и `month` необязательны: без них возвращаются все транзакции пользователя.
-`month` без `year` даёт 400.
+`year` и `month` необязательны: без них берутся все транзакции пользователя. `month` без
+`year` даёт 400. `page` и `limit` по умолчанию равны 1 и 10, максимум `limit` — 100. Ответ:
+`{ items, summary: { income, expense, balance }, pagination: { page, limit, total, totalPages } }`,
+причём `summary` и `total` считаются по всему периоду, а не по текущей странице.
