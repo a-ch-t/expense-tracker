@@ -9,6 +9,11 @@ import {
 } from '../contracts/categories';
 import { GetUserByIdQuery } from '../contracts/users';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
+import {
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+  type QueryTransactionsDto,
+} from './dto/query-transactions.dto';
 import type { TransactionRecord, TransactionsSummary } from './transaction.read-model';
 import { TransactionsRepository } from './transactions.repository';
 import { TransactionsService } from './transactions.service';
@@ -38,6 +43,16 @@ const RECORD: TransactionRecord = {
 
 const EMPTY_SUMMARY: TransactionsSummary = { income: 0, expense: 0, balance: 0 };
 
+/** Query с проставленными значениями по умолчанию — их подставляет ValidationPipe. */
+const query = (overrides: Partial<QueryTransactionsDto> = {}): QueryTransactionsDto => ({
+  page: DEFAULT_PAGE,
+  limit: DEFAULT_LIMIT,
+  ...overrides,
+});
+
+/** Первая страница размером по умолчанию. */
+const FIRST_PAGE = { skip: 0, take: DEFAULT_LIMIT };
+
 const CREATE_DTO: CreateTransactionDto = {
   amount: 1500.5,
   type: TransactionType.expense,
@@ -66,6 +81,7 @@ describe('TransactionsService', () => {
     const repositoryMock: jest.Mocked<TransactionsRepository> = {
       create: jest.fn(),
       findAllByUser: jest.fn(),
+      countByUser: jest.fn(),
       findByIdForUser: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
@@ -162,43 +178,46 @@ describe('TransactionsService', () => {
     beforeEach(() => {
       routeQueries();
       repository.findAllByUser.mockResolvedValue([RECORD]);
+      repository.countByUser.mockResolvedValue(1);
       repository.summarize.mockResolvedValue(EMPTY_SUMMARY);
     });
 
     it('бросает BadRequestException, если month передан без year', async () => {
-      await expect(service.findAll('user-1', { month: 8 })).rejects.toBeInstanceOf(
+      await expect(service.findAll('user-1', query({ month: 8 }))).rejects.toBeInstanceOf(
         BadRequestException,
       );
       expect(repository.findAllByUser).not.toHaveBeenCalled();
     });
 
     it('без year и month читает все транзакции пользователя без периода', async () => {
-      await service.findAll('user-1', {});
+      await service.findAll('user-1', query());
 
-      expect(repository.findAllByUser).toHaveBeenCalledWith('user-1', undefined);
+      expect(repository.findAllByUser).toHaveBeenCalledWith('user-1', undefined, FIRST_PAGE);
       expect(repository.summarize).toHaveBeenCalledWith('user-1', undefined);
     });
 
     it('по year и month строит полуинтервал месяца в UTC', async () => {
-      await service.findAll('user-1', { year: 2026, month: 8 });
+      await service.findAll('user-1', query({ year: 2026, month: 8 }));
 
-      expect(repository.findAllByUser).toHaveBeenCalledWith('user-1', {
-        gte: new Date('2026-08-01T00:00:00.000Z'),
-        lt: new Date('2026-09-01T00:00:00.000Z'),
-      });
+      expect(repository.findAllByUser).toHaveBeenCalledWith(
+        'user-1',
+        { gte: new Date('2026-08-01T00:00:00.000Z'), lt: new Date('2026-09-01T00:00:00.000Z') },
+        FIRST_PAGE,
+      );
     });
 
     it('для декабря переносит верхнюю границу на январь следующего года', async () => {
-      await service.findAll('user-1', { year: 2026, month: 12 });
+      await service.findAll('user-1', query({ year: 2026, month: 12 }));
 
-      expect(repository.findAllByUser).toHaveBeenCalledWith('user-1', {
-        gte: new Date('2026-12-01T00:00:00.000Z'),
-        lt: new Date('2027-01-01T00:00:00.000Z'),
-      });
+      expect(repository.findAllByUser).toHaveBeenCalledWith(
+        'user-1',
+        { gte: new Date('2026-12-01T00:00:00.000Z'), lt: new Date('2027-01-01T00:00:00.000Z') },
+        FIRST_PAGE,
+      );
     });
 
     it('по одному year строит полуинтервал целого года', async () => {
-      await service.findAll('user-1', { year: 2026 });
+      await service.findAll('user-1', query({ year: 2026 }));
 
       expect(repository.summarize).toHaveBeenCalledWith('user-1', {
         gte: new Date('2026-01-01T00:00:00.000Z'),
@@ -210,11 +229,55 @@ describe('TransactionsService', () => {
       const summary: TransactionsSummary = { income: 90000, expense: 41230.5, balance: 48769.5 };
       repository.summarize.mockResolvedValue(summary);
 
-      const result = await service.findAll('user-1', { year: 2026, month: 8 });
+      const result = await service.findAll('user-1', query({ year: 2026, month: 8 }));
 
       expect(result.summary).toEqual(summary);
       expect(result.items).toHaveLength(1);
       expect(result.items[0]?.category).toEqual(CATEGORY);
+    });
+
+    it('по умолчанию читает первую страницу из десяти записей', async () => {
+      await service.findAll('user-1', query());
+
+      expect(repository.findAllByUser).toHaveBeenCalledWith('user-1', undefined, {
+        skip: 0,
+        take: 10,
+      });
+    });
+
+    it('смещает выборку на полные предыдущие страницы', async () => {
+      await service.findAll('user-1', query({ page: 3, limit: 10 }));
+
+      expect(repository.findAllByUser).toHaveBeenCalledWith('user-1', undefined, {
+        skip: 20,
+        take: 10,
+      });
+    });
+
+    it('считает число страниц по общему количеству записей, округляя вверх', async () => {
+      repository.countByUser.mockResolvedValue(21);
+
+      const result = await service.findAll('user-1', query({ page: 2, limit: 10 }));
+
+      expect(result.pagination).toEqual({ page: 2, limit: 10, total: 21, totalPages: 3 });
+    });
+
+    it('на пустой выдаче отдаёт ноль страниц', async () => {
+      repository.findAllByUser.mockResolvedValue([]);
+      repository.countByUser.mockResolvedValue(0);
+
+      const result = await service.findAll('user-1', query());
+
+      expect(result.items).toEqual([]);
+      expect(result.pagination.totalPages).toBe(0);
+    });
+
+    it('считает сводку по всему периоду, а не по странице', async () => {
+      await service.findAll('user-1', query({ page: 2, limit: 10 }));
+
+      // Ровно два аргумента: skip/take в summarize не уходят
+      expect(repository.summarize).toHaveBeenCalledWith('user-1', undefined);
+      expect(repository.countByUser).toHaveBeenCalledWith('user-1', undefined);
     });
   });
 

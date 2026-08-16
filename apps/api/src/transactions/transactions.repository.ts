@@ -3,6 +3,7 @@ import { TransactionType, type Prisma, type Transaction } from '@expense-tracker
 import { PrismaService } from '../prisma/prisma.service';
 import type {
   TransactionRecord,
+  TransactionsPageRequest,
   TransactionsPeriod,
   TransactionsSummary,
 } from './transaction.read-model';
@@ -19,13 +20,23 @@ export class TransactionsRepository {
     return this.toRecord(transaction);
   }
 
-  async findAllByUser(userId: string, period?: TransactionsPeriod): Promise<TransactionRecord[]> {
+  async findAllByUser(
+    userId: string,
+    period?: TransactionsPeriod,
+    page?: TransactionsPageRequest,
+  ): Promise<TransactionRecord[]> {
     const transactions = await this.prisma.transaction.findMany({
       where: this.buildWhere(userId, period),
       // Свежие операции сверху; createdAt разводит записи с одинаковой датой
       orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+      ...(page && { skip: page.skip, take: page.take }),
     });
     return transactions.map((transaction) => this.toRecord(transaction));
+  }
+
+  /** Сколько всего транзакций за период — знаменатель для числа страниц. */
+  countByUser(userId: string, period?: TransactionsPeriod): Promise<number> {
+    return this.prisma.transaction.count({ where: this.buildWhere(userId, period) });
   }
 
   async findByIdForUser(id: string, userId: string): Promise<TransactionRecord | null> {

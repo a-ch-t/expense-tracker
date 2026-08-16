@@ -29,10 +29,31 @@ export interface TransactionsSummary {
   balance: number;
 }
 
-/** Ответ GET /transactions: список за период плюс агрегаты по нему же. */
+/** Положение страницы в выдаче: по этим числам фронт рисует навигацию. */
+export interface TransactionsPagination {
+  page: number;
+  limit: number;
+  /** Всего записей за период, а не на странице */
+  total: number;
+  /** 0, когда записей нет вовсе */
+  totalPages: number;
+}
+
+/**
+ * Ответ GET /transactions: страница списка плюс агрегаты.
+ * summary считается по всему периоду, а не по странице: иначе итоги менялись бы
+ * при листании, хотя описывают они одну и ту же выборку.
+ */
 export interface TransactionsPage {
   items: TransactionReadModel[];
   summary: TransactionsSummary;
+  pagination: TransactionsPagination;
+}
+
+/** Смещение и размер страницы для репозитория. */
+export interface TransactionsPageRequest {
+  skip: number;
+  take: number;
 }
 
 /** Полуинтервал [gte, lt) — границы месяца или года в UTC. */

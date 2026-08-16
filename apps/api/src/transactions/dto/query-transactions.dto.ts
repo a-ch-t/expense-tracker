@@ -1,8 +1,15 @@
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
+/** Первая страница по десять записей — столько показывает главный экран. */
+export const DEFAULT_PAGE = 1;
+export const DEFAULT_LIMIT = 10;
+/** Верхняя граница limit: страница крупнее не имеет смысла и грузит БД. */
+export const MAX_LIMIT = 100;
+
 /**
- * Фильтр периода. Без параметров возвращаются все транзакции пользователя.
+ * Фильтр периода и страница выдачи. Без параметров возвращается первая страница
+ * из десяти записей по всем транзакциям пользователя.
  * @Type обязателен: query-параметры приходят строками, а enableImplicitConversion
  * в глобальном ValidationPipe не включён.
  */
@@ -21,4 +28,19 @@ export class QueryTransactionsDto {
   @Min(1)
   @Max(12)
   month?: number;
+
+  // Значение по умолчанию — инициализатором поля: ValidationPipe создаёт экземпляр
+  // класса, поэтому отсутствующий в query параметр остаётся тем, что здесь записано.
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number = DEFAULT_PAGE;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(MAX_LIMIT)
+  limit: number = DEFAULT_LIMIT;
 }
