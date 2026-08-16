@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
@@ -42,7 +43,7 @@ interface PaginationLinkProps {
   href: string;
   disabled: boolean;
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 /**
