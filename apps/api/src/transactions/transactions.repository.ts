@@ -22,14 +22,15 @@ export class TransactionsRepository {
 
   async findAllByUser(
     userId: string,
-    period?: TransactionsPeriod,
-    page?: TransactionsPageRequest,
+    period: TransactionsPeriod | undefined,
+    page: TransactionsPageRequest,
   ): Promise<TransactionRecord[]> {
     const transactions = await this.prisma.transaction.findMany({
       where: this.buildWhere(userId, period),
       // Свежие операции сверху; createdAt разводит записи с одинаковой датой
       orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
-      ...(page && { skip: page.skip, take: page.take }),
+      skip: page.skip,
+      take: page.take,
     });
     return transactions.map((transaction) => this.toRecord(transaction));
   }

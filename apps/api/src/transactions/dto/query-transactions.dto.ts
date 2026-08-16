@@ -6,6 +6,11 @@ export const DEFAULT_PAGE = 1;
 export const DEFAULT_LIMIT = 10;
 /** Верхняя граница limit: страница крупнее не имеет смысла и грузит БД. */
 export const MAX_LIMIT = 100;
+/**
+ * Верхняя граница page. Без неё skip = (page - 1) * limit перешагивает INT32,
+ * который Prisma принимает для skip, и вместо 400 клиент получает 500.
+ */
+export const MAX_PAGE = 1_000_000;
 
 /**
  * Фильтр периода и страница выдачи. Без параметров возвращается первая страница
@@ -35,6 +40,7 @@ export class QueryTransactionsDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(MAX_PAGE)
   page: number = DEFAULT_PAGE;
 
   @IsOptional()
