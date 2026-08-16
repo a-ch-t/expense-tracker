@@ -10,11 +10,14 @@ const moneyFormatter = new Intl.NumberFormat('ru-RU', {
   maximumFractionDigits: 2,
 });
 
-// Цифрами, а не «16 авг. 2026 г.»: в колонке дат важна одинаковая ширина, а не читаемость вслух
+// Цифрами, а не «16 авг. 2026 г.»: в колонке дат важна одинаковая ширина, а не читаемость вслух.
+// timeZone: 'UTC' обязателен — API строит периоды в UTC (см. CLAUDE.md), а без явной зоны
+// Intl форматирует в зоне процесса Next и на границах суток сдвигает дату на день.
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
+  timeZone: 'UTC',
 });
 
 /** Сумма с валютой: 1 250,50 ₽. Знак операции добавляет вызывающий код. */

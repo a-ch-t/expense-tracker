@@ -36,6 +36,12 @@ export async function DashboardPage({ searchParams }: DashboardPageProps) {
 
   const { items, summary, pagination } = state.page;
 
+  // Страница за пределом выдачи (устаревшая закладка, операции удалили) — вместо
+  // честной пустоты, которая выглядит как «операций вообще нет», ведём на последнюю.
+  if (pagination.totalPages > 0 && pagination.page > pagination.totalPages) {
+    redirect(`${ROUTES.dashboard}?page=${pagination.totalPages}`);
+  }
+
   return (
     <div className="space-y-6">
       <div>
