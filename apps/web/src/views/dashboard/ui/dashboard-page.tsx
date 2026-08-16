@@ -1,42 +1,78 @@
 import { redirect } from 'next/navigation';
-import { getSession } from '@/entities/session';
-import { LogoutButton } from '@/features/auth';
+import { getTransactions, SummaryCards, TransactionList } from '@/entities/transaction';
 import { ROUTES } from '@/shared/config/routes';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
+import { Pagination } from '@/shared/ui/pagination';
 
-export async function DashboardPage() {
-  const session = await getSession();
+/** Сколько операций показывает главный экран. */
+const PAGE_SIZE = 10;
 
-  // Уводим через /logout, а не сразу на /login: proxy пускает сюда по сроку жизни
-  // токена, и без сброса куки он вернул бы пользователя обратно — цикл редиректов.
-  if (session.status === 'unauthenticated') {
+interface DashboardPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+/**
+ * Главный экран: сводка за всё время и последние операции с листанием.
+ * Сессию проверяет лейаут группы (app) — здесь остаются только данные страницы.
+ */
+export async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const page = parsePage((await searchParams)['page']);
+  const state = await getTransactions({ page, limit: PAGE_SIZE });
+
+  // Токен есть, но API его не принял: сбрасываем куку через /logout, иначе proxy
+  // вернёт пользователя обратно по живому exp — цикл редиректов.
+  if (state.status === 'unauthenticated') {
     redirect(ROUTES.logout);
   }
 
-  // Сессию проверить не смогли — API лежит или ответил 5xx. Разлогинивать за это
-  // нельзя: токен, возможно, в порядке, а пользователь потеряет сессию из-за сбоя.
-  if (session.status === 'unavailable') {
+  if (state.status === 'unavailable') {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center p-8">
-        <Alert variant="destructive">
-          <AlertDescription>Сервис недоступен, попробуйте позже</AlertDescription>
-        </Alert>
-      </main>
+      <Alert variant="destructive">
+        <AlertDescription>Не удалось загрузить операции, попробуйте позже</AlertDescription>
+      </Alert>
     );
   }
 
+  const { items, summary, pagination } = state.page;
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center p-8">
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Главная</h1>
+        <p className="text-sm text-muted-foreground">Доходы и расходы за всё время</p>
+      </div>
+
+      <SummaryCards summary={summary} />
+
       <Card>
         <CardHeader>
-          <CardTitle>Привет, {session.user.name}</CardTitle>
-          <CardDescription>{session.user.email}</CardDescription>
+          <CardTitle>Последние операции</CardTitle>
         </CardHeader>
-        <CardContent>
-          <LogoutButton />
+        <CardContent className="space-y-4">
+          <TransactionList transactions={items} />
+
+          {pagination.totalPages > 1 && (
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              basePath={ROUTES.dashboard}
+              className="justify-end"
+            />
+          )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
+}
+
+/**
+ * Номер страницы из адресной строки. Мусор и значения меньше единицы дают первую
+ * страницу: адрес правит пользователь, и падать из-за ?page=abc экран не должен.
+ */
+function parsePage(value: string | string[] | undefined): number {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const parsed = Number(raw);
+
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
