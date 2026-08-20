@@ -4,30 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Состояние проекта
 
-Монорепозиторий с авторизацией, категориями трат и учётом доходов/расходов. В `schema.prisma`
-есть модели `User`, `Category` (FK `userId` на `User`, `onDelete: Cascade`,
-`@@unique([userId, name])`) и `Transaction` (`amount Decimal(12, 2)`, enum
-`TransactionType { income expense }`, FK `userId` с `Cascade` и `categoryId` с **`Restrict`**,
-`@@index([userId, date])`). У API, помимо `GET /api/health`, есть `POST /api/auth/register`,
-`POST /api/auth/login`, `GET /api/auth/me` и полный CRUD `/api/categories` и
-`/api/transactions` (`POST`/`GET`/`GET :id`/`PATCH :id`/`DELETE :id`) — все эндпоинты
-`categories`, `transactions` и `GET /api/auth/me` защищены `JwtAuthGuard`. Модули `users`,
-`auth`, `categories` и `transactions` реализованы через CQRS, см. «Архитектуру» ниже.
-На фронте есть страницы `/login`, `/register`, главный экран `/dashboard` (сводка и последние
-десять операций с листанием), заглушки разделов `/transactions` и `/categories` («раздел
-в разработке») и заглушки правовых документов `/terms` и `/privacy` (текста в них пока нет).
-Всё построено по Feature-Sliced Design, см. «Архитектуру» ниже. **Списков и форм транзакций
-и категорий ещё нет** — фронт только читает операции, создавать и править их можно лишь
-через API.
-
-`GET /api/transactions` принимает необязательные `year`, `month`, `page` и `limit`
-(по умолчанию `page=1`, `limit=10`, максимум `limit=100`) и возвращает
-`{ items, summary: { income, expense, balance }, pagination: { page, limit, total, totalPages } }`:
-страницу списка и агрегаты. `month` без `year` даёт 400. Границы периода — полуинтервал
-в UTC, чтобы не зависеть от таймзоны сервера. **`summary` и `total` считаются по всему
-периоду, а не по странице**: иначе итоги менялись бы при листании одной и той же выборки.
-Значения по умолчанию для `page`/`limit` заданы инициализаторами полей в
-`QueryTransactionsDto` — их подставляет `transform` глобального `ValidationPipe`.
+Монорепозиторий с авторизацией, категориями трат и учётом доходов/расходов. Бэкенд — `apps/api`
+(NestJS, CQRS, эндпоинты `/api/auth`, `/api/categories`, `/api/transactions`), фронтенд —
+`apps/web` (Next.js, Feature-Sliced Design). Модель данных, состав эндпоинтов и остальные детали
+бэкенда — в `apps/api/CLAUDE.md`; страницы, состояние фронтенда и его архитектура —
+в `apps/web/CLAUDE.md`.
 
 ## Команды
 
@@ -93,118 +74,9 @@ Prisma 7). npm workspace-скрипты запускают этот файл с 
 корневому `.env` конфиг указывает явно: `config({ path: '../../.env' })` — обычный
 `import 'dotenv/config'` искал бы `.env` рядом с собой и не находил.
 
-**Фронтенд построен по Feature-Sliced Design.** Слои: `src/shared` (переиспользуемое без
-доменной логики — компоненты shadcn, клиент API, конфиги), `src/entities` (доменные сущности,
-например `session` и `transaction`), `src/features` (пользовательские сценарии, например
-`auth`), `src/widgets` (композиционные блоки, общие для нескольких страниц, например
-`app-sidebar`), `src/views` (вёрстка страниц), `src/app` (роутер Next.js и одновременно
-app-слой FSD: глобальные стили, рут-лейаут).
-
-Правило зависимостей строго вниз: `app → views → widgets → features → entities → shared`. Слайсы одного
-слоя друг друга не импортируют — внутри слайса используются относительные пути. Каждый слайс вне
-`shared` имеет публичный `index.ts`, и снаружи импортируют только его (`@/features/auth`,
-а не `@/features/auth/ui/login-form`). `shared` — исключение: в него импортируют сегменты
-напрямую (`@/shared/ui/button`), потому что барель на весь слой утянул бы в бандл всё подряд.
-Всё это закреплено блоками `no-restricted-imports` в `apps/web/eslint.config.mjs`.
-
-Слой страниц называется `views`, а не канонический для FSD `pages`: имя `pages` в проекте на
-Next читалось бы как Pages Router.
-
-**Алиасы shadcn указывают в `shared`** (`components.json`): компоненты ставятся в
-`src/shared/ui`, `cn` живёт в `src/shared/lib/utils.ts`.
-
-**Корневой `.env` попадает во фронтенд через `src/instrumentation.ts`.** Next читает `.env`
-только рядом с приложением (`apps/web`), а он лежит в корне монорепозитория. Загрузить его в
-`next.config.ts` нельзя: конфиг исполняется в отдельном процессе, и `process.env` серверного
-рантайма от него не наследуется — переменные молча не доходят до кода, а `getApiUrl()` падает на
-каждом запросе. Поэтому `register()` из `instrumentation.ts` под проверкой
-`NEXT_RUNTIME === 'nodejs'` динамически импортирует `instrumentation.node.ts`, а тот зовёт
-`loadEnvConfig` из `@next/env`. Node-модули нужно держать именно в `instrumentation.node.ts`:
-файл `instrumentation.ts` собирается и для Edge, и прямой импорт `node:path` там ломает бандл.
-Путь к корню считается от `process.cwd()` — Turbopack принимает
-`new URL('...', import.meta.url)` за импорт ресурса и пытается его резолвить.
-
-**Авторизация на фронте — httpOnly cookie, которую ставит Server Action.** Браузер в NestJS
-напрямую не ходит: все запросы к API идут из серверного кода Next через `apiFetch`
-(`src/shared/api/api-client.ts`), поэтому адрес API — серверная переменная `API_URL`
-без префикса `NEXT_PUBLIC_`. `src/proxy.ts` разруливает навигацию, читая `exp` из payload
-токена без проверки подписи — подпись проверяет API. Имя и опции куки лежат в
-`src/shared/config/session-cookie.ts`, а не в `entities/session`, потому что proxy работает
-в Edge-рантайме и не может тянуть `next/headers` через барель сущности.
-
-**`getSession()` возвращает три состояния, а не «пользователь или null»** (`SessionState`):
-`authenticated`, `unauthenticated` (API ответил 401) и `unavailable` (API недоступен или 5xx).
-Различать последние два обязательно. Proxy пускает на закрытые страницы по `exp`, поэтому если
-страница на любой отказ уводит на `/login`, то при живом по `exp` токене без сессии — лежит API,
-пользователя удалили, сменили `JWT_SECRET` — proxy вернёт обратно, и редиректы зациклятся
-(куку руками не почистить, она `httpOnly`). Поэтому `unauthenticated` уводит на роут
-`/logout` (`src/app/logout/route.ts`), который сбрасывает куку и только затем отправляет на
-`/login`, а `unavailable` не редиректит вовсе — страница показывает ошибку. Роут нужен потому,
-что серверный компонент куки менять не может.
-
-**Тот же приём повторяет `getTransactions()`** (`TransactionsState`: `ok` / `unauthenticated` /
-`unavailable`). Любой запрос к API из страницы обязан различать «отказано» и «не смогли
-спросить» — иначе на любом сбое страница уводила бы на `/login` и упиралась в тот же цикл.
-
-**Токен сессии читает `getSessionToken()` из `src/shared/api/session-auth.ts`**, а не каждый
-слайс самостоятельно. Он лежит в `shared`, потому что нужен и `entities/session`,
-и `entities/transaction`, а соседние слайсы одного слоя импортировать друг друга не могут.
-
-**Закрытые разделы собраны в группе роутов `src/app/(app)/`.** Её лейаут один раз проверяет
-сессию и рисует `AppSidebar`, поэтому страницы внутри (`/dashboard`, `/transactions`,
-`/categories`) содержат только собственное содержимое и не повторяют обработку
-`unauthenticated`/`unavailable`. Скобки означают группировку — на URL имя `(app)` не влияет.
-Новый закрытый раздел добавляется тремя правками: страница внутри `(app)`, путь в
-`ROUTES` и он же в `matcher` и `PRIVATE_ROUTES` в `src/proxy.ts`.
-
-**Сайдбар написан руками, без shadcn `sidebar`.** Готовый компонент тянет sheet, tooltip,
-skeleton, separator, провайдер состояния и куку сворачивания — шесть файлов и клиентский
-рантайм ради статичного меню из трёх пунктов. `AppSidebar` — серверный компонент; клиентская
-только подсветка активного пункта (`nav-links.tsx`, `usePathname`). На узком экране сайдбар
-переключается в верхнюю полосу CSS-ом, без JS.
-
-**Модули общаются только через `contracts` и `common`.** `auth`, `users`, `categories` и
-`transactions` не импортируют друг друга напрямую (закреплено четырьмя блоками
-`no-restricted-imports` в `apps/api/eslint.config.mjs`). Общие слои
-`apps/api/src/contracts/users/` и `apps/api/src/contracts/categories/` содержат классы
-команд/запросов CQRS (`@nestjs/cqrs`) и read-модели; модуль-владелец таблицы регистрирует
-хендлеры для них в своей папке `handlers/`, остальные вызывают их через `CommandBus`/`QueryBus`.
-Так `categories` проверяет существование владельца через `GetUserByIdQuery` перед созданием
-категории, а `transactions` — и владельца, и категорию (`GetCategoryByIdQuery`), плюс
-подставляет категории в список одним `GetCategoriesByUserQuery` вместо запроса на транзакцию.
-Каждая таблица имеет ровно одного владельца (`users` → `User`, `categories` → `Category`,
-`transactions` → `Transaction`), и владелец ничего не экспортирует из своего модуля; `auth` —
-единственный, кто знает про `bcryptjs`. Импортировать из общих слоёв можно только их барели
-(`index.ts`) — `no-restricted-imports` матчит сырую строку импорта и блокирует прямые пути вида
-`'../contracts/users/user.read-model'`, но пропускает `'../contracts/users'`. Поэтому
-`CategoryReadModel` живёт в `contracts/categories/`, а не внутри модуля `categories`:
-её типом пользуется `transactions`.
-
-**`Transaction.categoryId` объявлен с `onDelete: Restrict`**, чтобы удаление категории не уносило
-историю трат. Из-за этого `P2003` в `CategoriesService.remove` значит «категорию держат
-транзакции» (409), а не «пользователь не найден», как в остальных методах, — там код
-обрабатывается отдельно, до общего `mapPrismaError`.
-
-**JWT-инфраструктура вынесена в `apps/api/src/common/auth/`** (`AuthCoreModule`, `JwtAuthGuard`,
-`CurrentUser`, `JwtPayload`) — она нужна и `auth`, и `categories`, и `transactions`, а
-`auth`-модуль как фича-модуль не может быть импортирован другими фичами напрямую.
-`AuthCoreModule` регистрирует
-`JwtModule.registerAsync` и экспортирует `JwtModule` + `JwtAuthGuard`; сам он не глобальный —
-модули, которым нужна авторизация, импортируют его явно в свои `imports`.
-
-**`.env` лежит в корне монорепозитория**, не в `apps/api`. `AppModule` указывает на него явно:
-`ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../../.env'] })`. Начать с
-`cp .env.example .env`.
-
-**Доступ к БД в API идёт через `PrismaService`** (`apps/api/src/prisma/prisma.service.ts`) —
-он наследует `PrismaClient`, получает `DATABASE_URL` через `ConfigService.getOrThrow` и
-управляет `$connect`/`$disconnect` по хукам жизненного цикла. Новые модули инжектят
-`PrismaService`, а не создают клиент сами.
-
-**Глобальная конфигурация API** (`apps/api/src/main.ts`): префикс `api` у всех маршрутов,
-CORS только для `http://localhost:3000`, `ValidationPipe` с
-`whitelist + forbidNonWhitelisted + transform` — DTO обязаны быть классами с декораторами
-`class-validator`, иначе неизвестные поля дадут 400.
+Архитектура самого фронтенда (Feature-Sliced Design, слои, авторизация через httpOnly-куку) —
+в `apps/web/CLAUDE.md`; архитектура бэкенда (модули на CQRS, `contracts`/`common`, JWT,
+`PrismaService`) — в `apps/api/CLAUDE.md`.
 
 ## Конвенции
 
@@ -216,16 +88,10 @@ CORS только для `http://localhost:3000`, `ValidationPipe` с
 - ESLint — flat config: корневой `eslint.config.mjs` базовый, конфиги в `apps/*` импортируют его и
   дополняют. Неиспользуемые переменные разрешены только с префиксом `_`.
 - Prettier: одинарные кавычки, точки с запятой, `printWidth: 100`, `trailingComma: all`.
-- shadcn/ui настроен на стиль `new-york`, RSC, `baseColor: neutral`, иконки lucide;
-  компоненты ставятся в `@/shared/ui` (каталога `src/components/` в проекте нет —
-  алиасы в `components.json` перенацелены на слой `shared`, см. «Архитектуру»).
-- Знак операции красится токенами `--income` и `--expense` из `globals.css` (классы
-  `text-income` / `text-expense`), а не `chart-*`: это статус записи, а не серия графика.
-  Расходы в списке остаются нейтральными — цветом помечаются только доходы и отрицательный
-  итог, иначе выделенным оказывается каждый второй элемент.
-- Суммы и даты форматирует `src/shared/lib/format.ts` (`Intl`, локаль `ru-RU`), колонки
-  цифр — с `tabular-nums`, чтобы разряды стояли друг под другом.
 - Комментарии и описания в коде — на русском, как в существующих файлах.
+- Конвенции конкретного workspace (shadcn/ui, цветовые токены, форматирование чисел и дат
+  на фронте; структура DTO и модулей на бэкенде) — в `apps/web/CLAUDE.md` и
+  `apps/api/CLAUDE.md` соответственно.
 
 ## Ветки
 
@@ -260,6 +126,7 @@ CORS только для `http://localhost:3000`, `ValidationPipe` с
 - **Заголовок PR** — по Conventional Commits, как заголовок коммита (см. «Коммиты»):
   `<тип>(<область>): <что делает>`, императив, без точки, до 72 символов.
 
+<when_committing>
 ## Коммиты
 
 Conventional Commits, текст на русском:
@@ -286,3 +153,4 @@ Co-Authored-By: ...
   документация задачи, а не код и не обслуживание репозитория.
 - Коммит, сделанный Claude, заканчивается футером
   `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
+</when_committing>
