@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { Prisma } from '@expense-tracker/db';
 import {
@@ -11,7 +6,6 @@ import {
   GetCategoryByIdQuery,
   type CategoryReadModel,
 } from '../contracts/categories';
-import { GetUserByIdQuery, type UserReadModel } from '../contracts/users';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
 import type { QueryTransactionsDto } from './dto/query-transactions.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
@@ -39,16 +33,10 @@ export class TransactionsService {
   ) {}
 
   async create(userId: string, dto: CreateTransactionDto): Promise<TransactionReadModel> {
-    // Проверяем владельца через CQRS: users — единственный, кто читает таблицу User
-    const owner = await this.queryBus.execute<GetUserByIdQuery, UserReadModel | null>(
-      new GetUserByIdQuery(userId),
-    );
-
-    if (!owner) {
-      // Токен ещё валиден, но пользователя удалили — как в GET /api/auth/me
-      throw new UnauthorizedException('Пользователь не найден');
-    }
-
+    // Существование владельца проверил JwtAuthGuard — повторять запрос здесь незачем.
+    // Если пользователя удалят между гардом и вставкой, FK отдаст P2003, и mapPrismaError
+    // назовёт его «категория не найдена»: у Transaction два внешних ключа, и по коду
+    // ошибки они неразличимы. Обе гонки требуют удаления аккаунта ровно в это окно.
     const category = await this.requireCategory(dto.categoryId, userId);
 
     try {

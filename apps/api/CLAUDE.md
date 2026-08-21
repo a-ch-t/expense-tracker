@@ -43,9 +43,9 @@ npm test -w @expense-tracker/api -- -t "название теста"     # од�
 `apps/api/src/contracts/users/` и `apps/api/src/contracts/categories/` содержат классы
 команд/запросов CQRS (`@nestjs/cqrs`) и read-модели; модуль-владелец таблицы регистрирует
 хендлеры для них в своей папке `handlers/`, остальные вызывают их через `CommandBus`/`QueryBus`.
-Так `categories` проверяет существование владельца через `GetUserByIdQuery` перед созданием
-категории, а `transactions` — и владельца, и категорию (`GetCategoryByIdQuery`), плюс
-подставляет категории в список одним `GetCategoriesByUserQuery` вместо запроса на транзакцию.
+Так `transactions` проверяет категорию через `GetCategoryByIdQuery` перед записью и
+подставляет категории в список одним `GetCategoriesByUserQuery` вместо запроса на транзакцию,
+а существование самого владельца проверяет `JwtAuthGuard` — см. ниже.
 Каждая таблица имеет ровно одного владельца (`users` → `User`, `categories` → `Category`,
 `transactions` → `Transaction`), и владелец ничего не экспортирует из своего модуля; `auth` —
 единственный, кто знает про `bcryptjs`. Импортировать из общих слоёв можно только их барели
@@ -65,6 +65,15 @@ npm test -w @expense-tracker/api -- -t "название теста"     # од�
 `AuthCoreModule` регистрирует
 `JwtModule.registerAsync` и экспортирует `JwtModule` + `JwtAuthGuard`; сам он не глобальный —
 модули, которым нужна авторизация, импортируют его явно в свои `imports`.
+
+**`JwtAuthGuard` проверяет не только подпись, но и существование пользователя** —
+`GetUserByIdQuery` через `QueryBus`, и 401, если записи в `User` уже нет. Валидная подпись с
+непросроченным `exp` ещё не значит, что аккаунт жив, а инвариант «валидный токен
+несуществующего пользователя — 401» общий для всех закрытых эндпоинтов: держать его в каждом
+сервисе значит однажды забыть, и снаружи это будет неотличимо от «данных просто нет». Ценой
+идёт один PK-lookup на авторизованный запрос. `QueryBus` доступен гарду потому, что
+`CqrsModule.forRoot()` в `AppModule` глобальный, — `AuthCoreModule` его не импортирует;
+проводка закреплена тестом в `jwt-auth.guard.spec.ts`.
 
 **`.env` лежит в корне монорепозитория**, не в `apps/api`. `AppModule` указывает на него явно:
 `ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../../.env'] })`. Начать с

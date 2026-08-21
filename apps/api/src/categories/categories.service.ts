@@ -4,10 +4,8 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { QueryBus } from '@nestjs/cqrs';
 import { Prisma } from '@expense-tracker/db';
 import type { CategoryReadModel } from '../contracts/categories';
-import { GetUserByIdQuery, type UserReadModel } from '../contracts/users';
 import { CategoriesRepository } from './categories.repository';
 import type { CreateCategoryDto } from './dto/create-category.dto';
 import type { UpdateCategoryDto } from './dto/update-category.dto';
@@ -23,22 +21,11 @@ function isPrismaError(error: unknown, code: string): boolean {
 
 @Injectable()
 export class CategoriesService {
-  constructor(
-    private readonly categoriesRepository: CategoriesRepository,
-    private readonly queryBus: QueryBus,
-  ) {}
+  constructor(private readonly categoriesRepository: CategoriesRepository) {}
 
   async create(userId: string, dto: CreateCategoryDto): Promise<CategoryReadModel> {
-    // Проверяем владельца через CQRS: users — единственный, кто читает таблицу User
-    const owner = await this.queryBus.execute<GetUserByIdQuery, UserReadModel | null>(
-      new GetUserByIdQuery(userId),
-    );
-
-    if (!owner) {
-      // Токен ещё валиден, но пользователя удалили — как в GET /api/auth/me
-      throw new UnauthorizedException('Пользователь не найден');
-    }
-
+    // Существование владельца проверил JwtAuthGuard — повторять запрос здесь незачем.
+    // Гонку «пользователя удалили между гардом и вставкой» ловит P2003 ниже.
     try {
       return await this.categoriesRepository.create(userId, {
         name: dto.name.trim(),
