@@ -1,5 +1,6 @@
 import { QueryHandler, type IQueryHandler } from '@nestjs/cqrs';
 import { GetUserByEmailQuery, type UserCredentials } from '../../contracts/users';
+import { normalizeEmail } from '../normalize-email';
 import { UsersRepository } from '../users.repository';
 
 @QueryHandler(GetUserByEmailQuery)
@@ -9,6 +10,6 @@ export class GetUserByEmailHandler
   constructor(private readonly usersRepository: UsersRepository) {}
 
   execute(query: GetUserByEmailQuery): Promise<UserCredentials | null> {
-    return this.usersRepository.findByEmail(query.email);
+    return this.usersRepository.findByEmail(normalizeEmail(query.email));
   }
 }
