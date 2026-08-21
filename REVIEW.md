@@ -153,6 +153,7 @@ npm test -w @expense-tracker/api
 - Работа, которую автор явно вынес за рамки задачи и назвал в описании PR.
 
 ## Чеклист
+
 - [ ] PR title соответствует Conventional Commits
 - [ ] Проект собирается без ошибок
 - [ ] FSD-слои не нарушены (нет горизонтальных импортов)
@@ -161,12 +162,14 @@ npm test -w @expense-tracker/api
 - [ ] Все входные данные валидируются через DTO
 
 ## Стиль
+
 - Контроллеры: `EntityController`
 - Команды CQRS: `CreateEntityCommand`, `UpdateEntityCommand`
 - Запросы CQRS: `GetEntityQuery`, `GetAllEntitiesQuery`
 - DTO: `CreateEntityDto`, `UpdateEntityDto`
 
 ## Пропускать при ревью
+
 - Файлы миграций Prisma (`prisma/migrations/**`)
 - `package-lock.json` и другие lock-файлы
 - `*.log` файлы

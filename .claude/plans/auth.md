@@ -117,13 +117,13 @@ model User {
 
 Новый каталог `apps/api/src/contracts/users/`:
 
-| Файл | Содержимое |
-| --- | --- |
-| `user.read-model.ts` | `UserReadModel` = `{ id, name, email, createdAt }`; `UserCredentials` = `UserReadModel & { passwordHash }` |
-| `create-user.command.ts` | `CreateUserCommand extends Command<UserReadModel>` — поля `name`, `email`, `passwordHash` |
-| `get-user-by-email.query.ts` | `GetUserByEmailQuery extends Query<UserCredentials \| null>` — поле `email` |
-| `get-user-by-id.query.ts` | `GetUserByIdQuery extends Query<UserReadModel \| null>` — поле `id` |
-| `index.ts` | Реэкспорт. Из-за `isolatedModules: true` типы реэкспортировать через `export type` |
+| Файл                         | Содержимое                                                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `user.read-model.ts`         | `UserReadModel` = `{ id, name, email, createdAt }`; `UserCredentials` = `UserReadModel & { passwordHash }` |
+| `create-user.command.ts`     | `CreateUserCommand extends Command<UserReadModel>` — поля `name`, `email`, `passwordHash`                  |
+| `get-user-by-email.query.ts` | `GetUserByEmailQuery extends Query<UserCredentials \| null>` — поле `email`                                |
+| `get-user-by-id.query.ts`    | `GetUserByIdQuery extends Query<UserReadModel \| null>` — поле `id`                                        |
+| `index.ts`                   | Реэкспорт. Из-за `isolatedModules: true` типы реэкспортировать через `export type`                         |
 
 Базовые классы `Command<T>` / `Query<T>` из `@nestjs/cqrs` v11 дают вывод типа результата:
 `commandBus.execute(new CreateUserCommand(...))` возвращает `Promise<UserReadModel>` без ручных
