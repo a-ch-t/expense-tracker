@@ -4,9 +4,10 @@ import { normalizeEmail } from '../normalize-email';
 import { UsersRepository } from '../users.repository';
 
 @QueryHandler(GetUserByEmailQuery)
-export class GetUserByEmailHandler
-  implements IQueryHandler<GetUserByEmailQuery, UserCredentials | null>
-{
+export class GetUserByEmailHandler implements IQueryHandler<
+  GetUserByEmailQuery,
+  UserCredentials | null
+> {
   constructor(private readonly usersRepository: UsersRepository) {}
 
   execute(query: GetUserByEmailQuery): Promise<UserCredentials | null> {

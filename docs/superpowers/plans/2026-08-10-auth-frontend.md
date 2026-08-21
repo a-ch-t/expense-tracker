@@ -24,38 +24,40 @@
 
 ## Карта файлов
 
-| Файл | Ответственность |
-| --- | --- |
-| `apps/web/components.json` | Алиасы shadcn указывают в `shared` |
-| `apps/web/next.config.ts` | Загрузка корневого `.env` |
-| `apps/web/eslint.config.mjs` | Границы слоёв FSD |
-| `src/shared/lib/utils.ts` | `cn` (переезд из `src/lib/`) |
-| `src/shared/ui/*` | Компоненты shadcn |
-| `src/shared/config/env.ts` | Чтение `API_URL` |
-| `src/shared/config/routes.ts` | Константы путей |
-| `src/shared/config/session-cookie.ts` | Имя и опции куки сессии |
-| `src/shared/api/api-error.ts` | Класс `ApiError` |
-| `src/shared/api/api-client.ts` | `apiFetch` — единственная точка выхода в NestJS |
-| `src/entities/session/model/user.ts` | Тип `User` |
-| `src/entities/session/api/get-session.ts` | `getSession()` — кто залогинен |
-| `src/features/auth/model/*` | zod-схемы, тип результата экшена, маппинг ошибок |
-| `src/features/auth/api/*.action.ts` | Server Actions: вход, регистрация, выход |
-| `src/features/auth/ui/*` | Формы и кнопка выхода |
-| `src/views/*` | Вёрстка трёх страниц |
-| `src/app/**` | Роутер Next: тонкие реэкспорты и лейауты |
-| `src/middleware.ts` | Навигация по сроку жизни токена |
+| Файл                                      | Ответственность                                  |
+| ----------------------------------------- | ------------------------------------------------ |
+| `apps/web/components.json`                | Алиасы shadcn указывают в `shared`               |
+| `apps/web/next.config.ts`                 | Загрузка корневого `.env`                        |
+| `apps/web/eslint.config.mjs`              | Границы слоёв FSD                                |
+| `src/shared/lib/utils.ts`                 | `cn` (переезд из `src/lib/`)                     |
+| `src/shared/ui/*`                         | Компоненты shadcn                                |
+| `src/shared/config/env.ts`                | Чтение `API_URL`                                 |
+| `src/shared/config/routes.ts`             | Константы путей                                  |
+| `src/shared/config/session-cookie.ts`     | Имя и опции куки сессии                          |
+| `src/shared/api/api-error.ts`             | Класс `ApiError`                                 |
+| `src/shared/api/api-client.ts`            | `apiFetch` — единственная точка выхода в NestJS  |
+| `src/entities/session/model/user.ts`      | Тип `User`                                       |
+| `src/entities/session/api/get-session.ts` | `getSession()` — кто залогинен                   |
+| `src/features/auth/model/*`               | zod-схемы, тип результата экшена, маппинг ошибок |
+| `src/features/auth/api/*.action.ts`       | Server Actions: вход, регистрация, выход         |
+| `src/features/auth/ui/*`                  | Формы и кнопка выхода                            |
+| `src/views/*`                             | Вёрстка трёх страниц                             |
+| `src/app/**`                              | Роутер Next: тонкие реэкспорты и лейауты         |
+| `src/middleware.ts`                       | Навигация по сроку жизни токена                  |
 
 ---
 
 ### Task 1: Каркас FSD и переезд shadcn
 
 **Files:**
+
 - Modify: `apps/web/components.json`
 - Create: `apps/web/src/shared/lib/utils.ts` (переезд `apps/web/src/lib/utils.ts`)
 - Create: `apps/web/src/shared/ui/` (компоненты ставит CLI)
 - Delete: `apps/web/src/lib/`, `apps/web/src/components/`
 
 **Interfaces:**
+
 - Produces: `cn(...inputs: ClassValue[]): string` по пути `@/shared/lib/utils`; компоненты `Button`, `Input`, `Label`, `Card`/`CardHeader`/`CardTitle`/`CardDescription`/`CardContent`, `Alert`/`AlertDescription`, `Form`/`FormControl`/`FormField`/`FormItem`/`FormLabel`/`FormMessage` по путям `@/shared/ui/<имя>`.
 
 - [ ] **Step 1: Переписать алиасы в `components.json`**
@@ -138,6 +140,7 @@ git commit -m "feat(web): каркас shared-слоя FSD и базовые к�
 ### Task 2: Конфигурация окружения и клиент API
 
 **Files:**
+
 - Modify: `.env.example`, `.env`
 - Modify: `apps/web/next.config.ts`
 - Create: `apps/web/src/shared/config/env.ts`
@@ -147,6 +150,7 @@ git commit -m "feat(web): каркас shared-слоя FSD и базовые к�
 - Create: `apps/web/src/shared/api/api-client.ts`
 
 **Interfaces:**
+
 - Consumes: ничего из предыдущих задач.
 - Produces:
   - `getApiUrl(): string`
@@ -350,11 +354,13 @@ git commit -m "feat(web): клиент API и конфигурация окру�
 ### Task 3: Сущность сессии
 
 **Files:**
+
 - Create: `apps/web/src/entities/session/model/user.ts`
 - Create: `apps/web/src/entities/session/api/get-session.ts`
 - Create: `apps/web/src/entities/session/index.ts`
 
 **Interfaces:**
+
 - Consumes: `apiFetch` из `@/shared/api/api-client`, `SESSION_COOKIE_NAME` из `@/shared/config/session-cookie`.
 - Produces: `getSession(): Promise<User | null>` и тип `User { id: string; name: string; email: string; createdAt: string }` через барель `@/entities/session`.
 
@@ -432,6 +438,7 @@ git commit -m "feat(web): сущность сессии с чтением тек
 ### Task 4: Схемы и Server Actions авторизации
 
 **Files:**
+
 - Create: `apps/web/src/features/auth/model/login.schema.ts`
 - Create: `apps/web/src/features/auth/model/register.schema.ts`
 - Create: `apps/web/src/features/auth/model/auth-response.ts`
@@ -443,6 +450,7 @@ git commit -m "feat(web): сущность сессии с чтением тек
 - Create: `apps/web/src/features/auth/api/logout.action.ts`
 
 **Interfaces:**
+
 - Consumes: `apiFetch`, `ApiError`, `ROUTES`, `SESSION_COOKIE_NAME`, `SESSION_COOKIE_OPTIONS`, тип `User` из `@/entities/session`.
 - Produces:
   - `loginSchema`, тип `LoginValues = { email: string; password: string }`
@@ -675,12 +683,14 @@ git commit -m "feat(web): server actions входа, регистрации и �
 ### Task 5: Формы авторизации
 
 **Files:**
+
 - Create: `apps/web/src/features/auth/ui/login-form.tsx`
 - Create: `apps/web/src/features/auth/ui/register-form.tsx`
 - Create: `apps/web/src/features/auth/ui/logout-button.tsx`
 - Create: `apps/web/src/features/auth/index.ts`
 
 **Interfaces:**
+
 - Consumes: экшены и схемы из Task 4, компоненты `@/shared/ui/*` из Task 1.
 - Produces: `LoginForm`, `RegisterForm`, `LogoutButton` — все без пропсов, через барель `@/features/auth`.
 
@@ -696,14 +706,7 @@ import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/shared/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { loginAction } from '../api/login.action';
 import { loginSchema, type LoginValues } from '../model/login.schema';
 
@@ -784,14 +787,7 @@ import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/shared/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { registerAction } from '../api/register.action';
 import { registerSchema, type RegisterValues } from '../model/register.schema';
 
@@ -941,6 +937,7 @@ git commit -m "feat(web): формы входа и регистрации на r
 ### Task 6: Страницы и роуты
 
 **Files:**
+
 - Create: `apps/web/src/views/login/ui/login-page.tsx`, `apps/web/src/views/login/index.ts`
 - Create: `apps/web/src/views/register/ui/register-page.tsx`, `apps/web/src/views/register/index.ts`
 - Create: `apps/web/src/views/dashboard/ui/dashboard-page.tsx`, `apps/web/src/views/dashboard/index.ts`
@@ -951,6 +948,7 @@ git commit -m "feat(web): формы входа и регистрации на r
 - Modify: `apps/web/src/app/page.tsx`
 
 **Interfaces:**
+
 - Consumes: `LoginForm`, `RegisterForm`, `LogoutButton` из `@/features/auth`; `getSession` из `@/entities/session`; `ROUTES`; компоненты `Card*` из `@/shared/ui/card`.
 - Produces: `LoginPage`, `RegisterPage`, `DashboardPage` через барели `@/views/<имя>`.
 
@@ -1148,9 +1146,11 @@ git commit -m "feat(web): страницы входа, регистрации и
 ### Task 7: Middleware защиты роутов
 
 **Files:**
+
 - Create: `apps/web/src/middleware.ts`
 
 **Interfaces:**
+
 - Consumes: `SESSION_COOKIE_NAME`, `ROUTES` из `@/shared/config/*`.
 - Produces: перехват навигации на `/login`, `/register`, `/dashboard/*`.
 
@@ -1245,10 +1245,12 @@ git commit -m "feat(web): middleware защиты роутов по сроку �
 ### Task 8: Границы слоёв в ESLint и документация
 
 **Files:**
+
 - Modify: `apps/web/eslint.config.mjs`
 - Modify: `CLAUDE.md`
 
 **Interfaces:**
+
 - Consumes: структуру слоёв, созданную в задачах 1–7.
 - Produces: правила линта, падающие на нарушении правила зависимостей FSD.
 
@@ -1432,6 +1434,7 @@ git commit -m "chore(web): закрепить границы слоёв FSD в E
 **Files:** изменений нет — только проверка.
 
 **Interfaces:**
+
 - Consumes: всё, собранное в задачах 1–8.
 
 - [ ] **Step 1: Поднять окружение**
