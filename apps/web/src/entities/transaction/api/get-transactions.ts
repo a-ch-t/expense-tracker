@@ -8,6 +8,14 @@ import type { TransactionsState } from '../model/transactions-state';
 
 const UNAUTHORIZED_STATUS = 401;
 
+/**
+ * Верхние границы page и limit из QueryTransactionsDto: за ними API отвечает 400.
+ * Продублированы, потому что apps/web не может импортировать код из apps/api — при
+ * правке границ на бэкенде поправить нужно и здесь.
+ */
+const MAX_PAGE = 1_000_000;
+const MAX_LIMIT = 100;
+
 interface GetTransactionsParams {
   page: number;
   limit: number;
@@ -24,7 +32,14 @@ export async function getTransactions({
     return { status: 'unauthenticated' };
   }
 
-  const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+  // Номер страницы приходит из адресной строки, а её правит пользователь. Без зажима
+  // ?page=2000000 давал бы 400, который здесь не отличить от лежащего бэкенда: экран
+  // показывал бы «сервис недоступен» и писал в error-лог из-за опечатки в URL.
+  // Страница за пределом выдачи — не ошибка: вызывающий код уводит на последнюю.
+  const query = new URLSearchParams({
+    page: String(Math.min(page, MAX_PAGE)),
+    limit: String(Math.min(limit, MAX_LIMIT)),
+  });
 
   try {
     return {
