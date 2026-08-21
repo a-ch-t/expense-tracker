@@ -1,13 +1,12 @@
 import { Test } from '@nestjs/testing';
 import { QueryBus } from '@nestjs/cqrs';
-import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma, TransactionType } from '@expense-tracker/db';
 import {
   GetCategoriesByUserQuery,
   GetCategoryByIdQuery,
   type CategoryReadModel,
 } from '../contracts/categories';
-import { GetUserByIdQuery } from '../contracts/users';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
 import {
   DEFAULT_LIMIT,
@@ -20,8 +19,6 @@ import { TransactionsService } from './transactions.service';
 
 const prismaError = (code: string): Prisma.PrismaClientKnownRequestError =>
   new Prisma.PrismaClientKnownRequestError('mock', { code, clientVersion: 'test' });
-
-const OWNER = { id: 'user-1', name: 'Owner', email: 'owner@example.com', createdAt: new Date() };
 
 const CATEGORY: CategoryReadModel = {
   id: 'category-1',
@@ -66,11 +63,10 @@ describe('TransactionsService', () => {
   let repository: jest.Mocked<TransactionsRepository>;
   let queryBus: { execute: jest.Mock };
 
-  /** QueryBus обслуживает три разных запроса — разводим их по типу. */
-  const routeQueries = (overrides: { owner?: unknown; category?: unknown } = {}): void => {
-    const { owner = OWNER, category = CATEGORY } = overrides;
+  /** QueryBus обслуживает два запроса о категориях — разводим их по типу. */
+  const routeQueries = (overrides: { category?: unknown } = {}): void => {
+    const { category = CATEGORY } = overrides;
     queryBus.execute.mockImplementation((query: unknown) => {
-      if (query instanceof GetUserByIdQuery) return Promise.resolve(owner);
       if (query instanceof GetCategoryByIdQuery) return Promise.resolve(category);
       if (query instanceof GetCategoriesByUserQuery) return Promise.resolve([CATEGORY]);
       throw new Error('Неожиданный запрос');
@@ -103,15 +99,6 @@ describe('TransactionsService', () => {
   });
 
   describe('create', () => {
-    it('бросает UnauthorizedException, если владелец не найден, и не вызывает репозиторий', async () => {
-      routeQueries({ owner: null });
-
-      await expect(service.create('user-1', CREATE_DTO)).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
-      expect(repository.create).not.toHaveBeenCalled();
-    });
-
     it('бросает NotFoundException, если категория чужая или не существует', async () => {
       routeQueries({ category: null });
 
