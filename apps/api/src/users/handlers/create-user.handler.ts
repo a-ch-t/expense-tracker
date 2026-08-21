@@ -2,6 +2,7 @@ import { ConflictException } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { Prisma } from '@expense-tracker/db';
 import { CreateUserCommand, type UserReadModel } from '../../contracts/users';
+import { normalizeEmail } from '../normalize-email';
 import { UsersRepository } from '../users.repository';
 
 @CommandHandler(CreateUserCommand)
@@ -9,7 +10,7 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand, Use
   constructor(private readonly usersRepository: UsersRepository) {}
 
   async execute(command: CreateUserCommand): Promise<UserReadModel> {
-    const email = command.email.trim().toLowerCase();
+    const email = normalizeEmail(command.email);
 
     try {
       return await this.usersRepository.create(command.name, email, command.passwordHash);
