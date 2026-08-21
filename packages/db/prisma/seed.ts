@@ -1,8 +1,18 @@
+import { resolve } from 'node:path';
+import { config } from 'dotenv';
 import { createPrismaClient, TransactionType } from '../src/index';
 
+// Сид запускает tsx напрямую, без Prisma CLI, поэтому prisma.config.ts здесь не
+// участвует и .env не загружает никто — без этой строки createPrismaClient падает
+// на «DATABASE_URL не задан». Путь считаем от файла, а не от cwd: скрипт зовут и
+// через `npm run db:seed` (cwd = packages/db), и напрямую из корня репозитория.
+config({ path: resolve(__dirname, '../../../.env') });
+
+// Строго после config(): DATABASE_URL читается в момент вызова, а не импорта.
 const prisma = createPrismaClient();
 
 const DEMO_EMAIL = 'demo@example.com';
+const DEMO_NAME = 'Демо';
 
 /**
  * Пароль демо-пользователя — `demo-password`.
@@ -130,16 +140,26 @@ const TRANSACTIONS: readonly SeedTransaction[] = [
 ];
 
 async function main(): Promise<void> {
+  // update, а не {}: сид обязан приводить демо-аккаунт к состоянию, описанному в
+  // CLAUDE.md. С пустым update у уже существующего demo@example.com остались бы
+  // прежние имя и пароль, и документированные учётные данные молча не работали бы.
   const user = await prisma.user.upsert({
     where: { email: DEMO_EMAIL },
-    update: {},
-    create: { name: 'Демо', email: DEMO_EMAIL, passwordHash: DEMO_PASSWORD_HASH },
+    update: { name: DEMO_NAME, passwordHash: DEMO_PASSWORD_HASH },
+    create: { name: DEMO_NAME, email: DEMO_EMAIL, passwordHash: DEMO_PASSWORD_HASH },
   });
 
   // Транзакции сносим до категорий: FK categoryId объявлен с onDelete: Restrict,
   // и категорию с операциями удалить нельзя. Заодно сид становится идемпотентным —
   // повторный запуск не удваивает список операций.
   await prisma.transaction.deleteMany({ where: { userId: user.id } });
+
+  // Категории, которых нет в списке, — следы прошлых прогонов и ручных правок.
+  // Без этого демо-аккаунт копит чужие категории, и «пять категорий» из CLAUDE.md
+  // перестаёт быть правдой. Идёт после удаления операций: иначе Restrict не пустит.
+  await prisma.category.deleteMany({
+    where: { userId: user.id, name: { notIn: CATEGORIES.map((category) => category.name) } },
+  });
 
   const categories = new Map<CategoryName, string>();
 

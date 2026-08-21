@@ -22,18 +22,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `npm run db:migrate`                              | `prisma migrate dev`                                        |
 | `npm run build -w @expense-tracker/db`            | Клиент → `packages/db/dist/`, обязателен после правки схемы |
 | `npm run db:seed` / `db:studio`                   | Сид и Prisma Studio                                         |
-
-`db:seed` наполняет базу демо-данными: пользователь `demo@example.com` с паролем
-`demo-password`, пять категорий и операции за два месяца. Сид идемпотентен — повторный запуск
-не удваивает список: транзакции демо-пользователя удаляются перед вставкой (и обязательно
-раньше категорий, иначе `onDelete: Restrict` не даст их тронуть). Чужих данных сид не
-касается: всё привязано к одному этому email.
 | `npm run dev:api`                                 | NestJS в watch-режиме, http://localhost:3001/api            |
 | `npm run dev:web`                                 | Next.js, http://localhost:3000                              |
 | `npm run lint` / `format` / `typecheck` / `build` | По всему монорепо                                           |
 
 `dev:api` и `dev:web` — в разных терминалах: `npm run --workspaces` выполняет скрипты
 последовательно и не поднимет два dev-сервера сразу.
+
+`db:seed` наполняет базу демо-данными: пользователь `demo@example.com` с паролем
+`demo-password`, пять категорий и тринадцать операций за два месяца. Сид **приводит аккаунт к
+этому состоянию, а не дополняет его**: имя и пароль перезаписываются, операции удаляются перед
+вставкой, лишние категории — тоже. Иначе учётные данные из этого абзаца молча переставали бы
+работать на базе, где `demo@example.com` уже заводили руками. Порядок удаления обязателен:
+сначала операции, потом категории, иначе `onDelete: Restrict` не даст тронуть категорию.
+Чужих данных сид не касается — всё привязано к одному этому email.
+
+Сид грузит корневой `.env` сам (`dotenv` в `prisma/seed.ts`): его запускает `tsx`, а не Prisma
+CLI, поэтому `prisma.config.ts` в этом пути не участвует и переменные окружения не подставляет.
 
 Тесты есть только у API (Jest + ts-jest, `rootDir: src`, `testRegex: .*\.spec\.ts$`):
 
@@ -133,6 +138,7 @@ Prisma 7). npm workspace-скрипты запускают этот файл с 
   `<тип>(<область>): <что делает>`, императив, без точки, до 72 символов.
 
 <when_committing>
+
 ## Коммиты
 
 Conventional Commits, текст на русском:
@@ -159,4 +165,4 @@ Co-Authored-By: ...
   документация задачи, а не код и не обслуживание репозитория.
 - Коммит, сделанный Claude, заканчивается футером
   `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
-</when_committing>
+  </when_committing>
