@@ -22,6 +22,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `npm run db:migrate`                              | `prisma migrate dev`                                        |
 | `npm run build -w @expense-tracker/db`            | Клиент → `packages/db/dist/`, обязателен после правки схемы |
 | `npm run db:seed` / `db:studio`                   | Сид и Prisma Studio                                         |
+
+`db:seed` наполняет базу демо-данными: пользователь `demo@example.com` с паролем
+`demo-password`, пять категорий и операции за два месяца. Сид идемпотентен — повторный запуск
+не удваивает список: транзакции демо-пользователя удаляются перед вставкой (и обязательно
+раньше категорий, иначе `onDelete: Restrict` не даст их тронуть). Чужих данных сид не
+касается: всё привязано к одному этому email.
 | `npm run dev:api`                                 | NestJS в watch-режиме, http://localhost:3001/api            |
 | `npm run dev:web`                                 | Next.js, http://localhost:3000                              |
 | `npm run lint` / `format` / `typecheck` / `build` | По всему монорепо                                           |
