@@ -102,7 +102,8 @@ packages/
 
 Фронтенд построен по Feature-Sliced Design (`app → views → widgets → features → entities → shared`),
 бэкенд — по модулям NestJS на CQRS, где модули общаются только через `contracts` и `common`.
-Подробности — в `apps/web/CLAUDE.md` и `apps/api/CLAUDE.md`.
+Подробности — в `apps/web/CLAUDE.md`, `apps/api/CLAUDE.md` и
+[`.claude/docs/architecture.md`](.claude/docs/architecture.md).
 
 ## Модель данных
 
@@ -116,6 +117,9 @@ packages/
 
 Удаление пользователя каскадом уносит его категории и транзакции. Категорию, на которую
 ссылаются транзакции, удалить нельзя (`onDelete: Restrict`) — API отвечает 409.
+
+Назначение каждого поля и ER-диаграмма — в
+[`.claude/docs/database.md`](.claude/docs/database.md).
 
 ## Основные эндпоинты
 
@@ -138,6 +142,9 @@ packages/
 `{ items, summary: { income, expense, balance }, pagination: { page, limit, total, totalPages } }`,
 причём `summary` и `total` считаются по всему периоду, а не по текущей странице.
 
+Полное описание всех эндпоинтов, DTO и кодов ошибок — в
+[`.claude/docs/api.md`](.claude/docs/api.md).
+
 ## Полезные команды
 
 Все команды запускаются из корня репозитория.
@@ -156,4 +163,7 @@ packages/
 | `npm test -w @expense-tracker/api`                 | Тесты API (Jest + ts-jest; единственный workspace с тестами)   |
 
 Подробное описание архитектуры, конвенций и порядка веток/коммитов — в корневом `CLAUDE.md`,
-`apps/api/CLAUDE.md` и `apps/web/CLAUDE.md`.
+`apps/api/CLAUDE.md` и `apps/web/CLAUDE.md`. Более полная техническая документация — в
+[`.claude/docs/`](.claude/docs/): [`architecture.md`](.claude/docs/architecture.md) (архитектура
+и паттерны), [`api.md`](.claude/docs/api.md) (все эндпоинты), [`database.md`](.claude/docs/database.md)
+(схема БД) и [`dev-guide.md`](.claude/docs/dev-guide.md) (как добавить модуль, фичу, миграцию).
