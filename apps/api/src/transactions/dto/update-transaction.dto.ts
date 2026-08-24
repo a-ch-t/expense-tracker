@@ -14,7 +14,10 @@ import {
 import { TransactionType } from '@expense-tracker/db';
 import { MAX_AMOUNT } from './create-transaction.dto';
 
-// PartialType не используем: @nestjs/mapped-types нет в зависимостях.
+/**
+ * Тело запроса `PATCH /transactions/:id`: поля для частичного обновления транзакции.
+ * `PartialType` не используем: `@nestjs/mapped-types` нет в зависимостях.
+ */
 export class UpdateTransactionDto {
   @IsOptional()
   @IsNumber(

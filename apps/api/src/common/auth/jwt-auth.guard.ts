@@ -9,6 +9,10 @@ export interface AuthenticatedRequest extends Request {
   user: JwtPayload;
 }
 
+/**
+ * Гард авторизации: проверяет JWT из заголовка `Authorization` и существование его владельца.
+ * Общий для всех модулей с закрытыми эндпоинтами — импортируется через `AuthCoreModule`.
+ */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
@@ -16,6 +20,13 @@ export class JwtAuthGuard implements CanActivate {
     private readonly queryBus: QueryBus,
   ) {}
 
+  /**
+   * Проверяет токен запроса и наличие пользователя, затем записывает payload в `request.user`.
+   * @param context - контекст выполнения запроса.
+   * @returns `true`, если запрос авторизован.
+   * @throws {UnauthorizedException} если токен отсутствует, недействителен (просрочен или
+   * подпись не сходится) или пользователь из payload больше не существует.
+   */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const token = this.extractToken(request);
@@ -49,6 +60,12 @@ export class JwtAuthGuard implements CanActivate {
     return true;
   }
 
+  /**
+   * Достаёт токен из заголовка `Authorization: Bearer <token>`.
+   * @param request - входящий HTTP-запрос.
+   * @returns токен без префикса `Bearer`, либо `undefined`, если заголовка нет или схема
+   * не `Bearer`.
+   */
   private extractToken(request: Request): string | undefined {
     const header = request.headers.authorization;
     const [type, token] = header?.split(' ') ?? [];

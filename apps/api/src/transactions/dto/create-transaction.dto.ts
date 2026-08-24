@@ -15,6 +15,7 @@ import { TransactionType } from '@expense-tracker/db';
 /** Потолок Decimal(12, 2) в схеме: 10 цифр до запятой и 2 после. */
 export const MAX_AMOUNT = 9_999_999_999.99;
 
+/** Тело запроса `POST /transactions`: данные новой транзакции. */
 export class CreateTransactionDto {
   // Сумма всегда положительная — доход это или расход, говорит type
   @IsNumber(

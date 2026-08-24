@@ -6,6 +6,10 @@ import type { CategoryReadModel } from './category.read-model';
  * неотличима от несуществующей и возвращается как null.
  */
 export class GetCategoryByIdQuery extends Query<CategoryReadModel | null> {
+  /**
+   * @param id - идентификатор категории.
+   * @param userId - id пользователя, которому категория должна принадлежать.
+   */
   constructor(
     public readonly id: string,
     public readonly userId: string,
