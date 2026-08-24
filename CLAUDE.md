@@ -166,3 +166,8 @@ Co-Authored-By: ...
 - Коммит, сделанный Claude, заканчивается футером
   `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
   </when_committing>
+
+
+## Документация
+При добавлении функционала проверяй .claude/docs/*.
+Актуализируй файлы при изменении архитектуры или API.
