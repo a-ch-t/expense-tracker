@@ -4,8 +4,10 @@ import { TransactionsController } from './transactions.controller';
 import { TransactionsRepository } from './transactions.repository';
 import { TransactionsService } from './transactions.service';
 
-// Единственный владелец таблицы Transaction. Категории и пользователя читает
-// только через QueryBus — прямых импортов чужих модулей здесь нет.
+/**
+ * Модуль транзакций. Единственный владелец таблицы `Transaction`. Категории и пользователя
+ * читает только через `QueryBus` — прямых импортов чужих модулей здесь нет.
+ */
 @Module({
   imports: [AuthCoreModule],
   controllers: [TransactionsController],

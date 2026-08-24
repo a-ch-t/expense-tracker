@@ -4,8 +4,10 @@ import { JwtModule } from '@nestjs/jwt';
 import type { SignOptions } from 'jsonwebtoken';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
-// Инфраструктура JWT: конфигурация подписи и гард. Бизнес-логики здесь нет —
-// ни bcrypt, ни знания о пользователях. Не глобальный: модули импортируют явно.
+/**
+ * Инфраструктура JWT: конфигурация подписи и гард. Бизнес-логики здесь нет —
+ * ни bcrypt, ни знания о пользователях. Не глобальный: модули импортируют явно.
+ */
 @Module({
   imports: [
     JwtModule.registerAsync({

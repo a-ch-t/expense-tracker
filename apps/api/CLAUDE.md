@@ -88,3 +88,7 @@ npm test -w @expense-tracker/api -- -t "название теста"     # од�
 CORS только для `http://localhost:3000`, `ValidationPipe` с
 `whitelist + forbidNonWhitelisted + transform` — DTO обязаны быть классами с декораторами
 `class-validator`, иначе неизвестные поля дадут 400.
+
+## Документация
+После изменения методов — обновляй JSDoc.
+Для DTO и контроллеров — добавляй/обновляй Swagger декораторы.

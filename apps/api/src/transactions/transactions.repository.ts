@@ -11,15 +11,31 @@ import type {
 /** Поля, которые задаёт вызывающий код: id и даты создания проставляет БД. */
 type TransactionInput = Omit<TransactionRecord, 'id' | 'createdAt'>;
 
+/** Доступ к таблице `Transaction`: сырые CRUD-операции без бизнес-логики. */
 @Injectable()
 export class TransactionsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Создаёт транзакцию в БД.
+   * @param userId - id владельца транзакции.
+   * @param data - поля новой транзакции (без `id` и `createdAt` — их проставляет БД).
+   * @returns созданная запись.
+   * @throws {Prisma.PrismaClientKnownRequestError} с кодом `P2003`, если `categoryId` или
+   * `userId` ссылаются на несуществующую строку.
+   */
   async create(userId: string, data: TransactionInput): Promise<TransactionRecord> {
     const transaction = await this.prisma.transaction.create({ data: { ...data, userId } });
     return this.toRecord(transaction);
   }
 
+  /**
+   * Возвращает страницу транзакций пользователя за период, отсортированную по дате.
+   * @param userId - id владельца транзакций.
+   * @param period - границы периода `[gte, lt)`, либо `undefined` для всех транзакций.
+   * @param page - смещение (`skip`) и размер страницы (`take`).
+   * @returns записи страницы, свежие операции сверху.
+   */
   async findAllByUser(
     userId: string,
     period: TransactionsPeriod | undefined,
@@ -35,17 +51,38 @@ export class TransactionsRepository {
     return transactions.map((transaction) => this.toRecord(transaction));
   }
 
-  /** Сколько всего транзакций за период — знаменатель для числа страниц. */
+  /**
+   * Считает, сколько всего транзакций у пользователя за период — знаменатель для числа страниц.
+   * @param userId - id владельца транзакций.
+   * @param period - границы периода `[gte, lt)`, либо `undefined` для всех транзакций.
+   * @returns общее количество транзакций, без учёта пагинации.
+   */
   countByUser(userId: string, period?: TransactionsPeriod): Promise<number> {
     return this.prisma.transaction.count({ where: this.buildWhere(userId, period) });
   }
 
+  /**
+   * Ищет транзакцию по id в пределах транзакций конкретного пользователя.
+   * @param id - идентификатор транзакции.
+   * @param userId - id пользователя, которому транзакция должна принадлежать.
+   * @returns найденная запись, либо `null`, если её нет или она принадлежит другому пользователю.
+   */
   async findByIdForUser(id: string, userId: string): Promise<TransactionRecord | null> {
     // findFirst, а не findUnique: userId — часть условия владения, а не уникальный ключ
     const transaction = await this.prisma.transaction.findFirst({ where: { id, userId } });
     return transaction ? this.toRecord(transaction) : null;
   }
 
+  /**
+   * Обновляет транзакцию пользователя.
+   * @param id - идентификатор транзакции.
+   * @param userId - id пользователя, которому транзакция должна принадлежать.
+   * @param data - поля для обновления в формате Prisma.
+   * @returns обновлённая запись.
+   * @throws {Prisma.PrismaClientKnownRequestError} с кодом `P2025`, если строка с такой
+   * парой `(id, userId)` не найдена (в том числе если транзакция принадлежит другому
+   * пользователю); с кодом `P2003`, если новый `categoryId` не существует.
+   */
   async update(
     id: string,
     userId: string,
@@ -56,11 +93,24 @@ export class TransactionsRepository {
     return this.toRecord(transaction);
   }
 
+  /**
+   * Удаляет транзакцию пользователя.
+   * @param id - идентификатор транзакции.
+   * @param userId - id пользователя, которому транзакция должна принадлежать.
+   * @returns ничего.
+   * @throws {Prisma.PrismaClientKnownRequestError} с кодом `P2025`, если строка с такой
+   * парой `(id, userId)` не найдена.
+   */
   async remove(id: string, userId: string): Promise<void> {
     await this.prisma.transaction.delete({ where: { id, userId } });
   }
 
-  /** Суммы доходов и расходов за период — считает БД, а не Node. */
+  /**
+   * Считает суммы доходов и расходов за период на стороне БД.
+   * @param userId - id владельца транзакций.
+   * @param period - границы периода `[gte, lt)`, либо `undefined` для всех транзакций.
+   * @returns `{ income, expense, balance }`, где `balance = income - expense`.
+   */
   async summarize(userId: string, period?: TransactionsPeriod): Promise<TransactionsSummary> {
     const groups = await this.prisma.transaction.groupBy({
       by: ['type'],
@@ -79,10 +129,21 @@ export class TransactionsRepository {
     return { income, expense, balance: income - expense };
   }
 
+  /**
+   * Собирает условие `where` для выборки транзакций пользователя.
+   * @param userId - id владельца транзакций.
+   * @param period - границы периода `[gte, lt)`; если не задан, фильтр по дате не добавляется.
+   * @returns условие для Prisma-запроса.
+   */
   private buildWhere(userId: string, period?: TransactionsPeriod): Prisma.TransactionWhereInput {
     return { userId, ...(period && { date: period }) };
   }
 
+  /**
+   * Приводит строку Prisma к внутреннему представлению репозитория.
+   * @param transaction - строка транзакции, как её вернул Prisma Client.
+   * @returns запись с числовым `amount` вместо `Decimal`.
+   */
   private toRecord(transaction: Transaction): TransactionRecord {
     return {
       id: transaction.id,
