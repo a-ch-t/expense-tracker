@@ -1,0 +1,64 @@
+---
+name: commit
+description: Use when writing or reviewing a git commit message in this repository — staging changes, running `git commit`, drafting a commit before opening a PR. Covers Conventional Commits type/scope, header/body formatting, .claude/ file handling, and the Co-Authored-By footer.
+---
+
+# commit
+
+## Overview
+
+Commit messages in this repo follow Conventional Commits, written in Russian:
+
+```
+<тип>(<область>): <что делает коммит>
+
+<почему сделано именно так>
+
+Co-Authored-By: ...
+```
+
+## Типы
+
+`feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`. Ломающее изменение — `!` перед
+двоеточием плюс абзац `BREAKING CHANGE: ...` в футере.
+
+## Область
+
+Workspace, которого касается правка: `api`, `web`, `db`. Опускается, когда изменение задевает
+несколько workspace сразу или лежит в корне репозитория.
+
+## Заголовок
+
+Императив со строчной буквы, без точки в конце, не длиннее 72 символов: «добавить учёт
+расходов», а не «добавлен» и не «добавил». 72 — граница, за которой строку обрезает
+`git log --oneline` и интерфейс GitHub.
+
+## Тело
+
+Через пустую строку, перенос по 72 символа. Отвечает на «почему», а не на «что»: что изменилось,
+видно в диффе, а причина видна только здесь. Неочевидные решения вроде `onDelete: Restrict` или
+обхода запрета импортов между модулями объясняются именно в теле.
+
+## Файлы в `.claude/`
+
+Всё, что лежит в `.claude/` (планы, промпты, шаблоны), коммитится как `docs` — это документация
+задачи, а не код и не обслуживание репозитория.
+
+## Футер
+
+Коммит, сделанный Claude, заканчивается футером:
+
+```
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+```
+
+## Быстрая справка
+
+| Вопрос              | Ответ                                                    |
+| -------------------- | --------------------------------------------------------- |
+| Язык                | Русский                                                  |
+| Формат              | Conventional Commits                                    |
+| Длина заголовка     | ≤ 72 символов                                            |
+| Наклонение заголовка | Императив, строчная буква, без точки                    |
+| Правки в `.claude/`  | Всегда `docs`                                            |
+| Футер               | `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`  |
