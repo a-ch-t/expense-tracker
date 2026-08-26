@@ -1,6 +1,10 @@
 ---
 name: commit
-description: Use when writing or reviewing a git commit message in this repository — staging changes, running `git commit`, drafting a commit before opening a PR. Covers Conventional Commits type/scope, header/body formatting, .claude/ file handling, and the Co-Authored-By footer.
+description: Создать коммит по соглашению проекта с описанием на русском
+allowedTools:
+  - Bash(git *)
+model: claude-sonnet-4-5
+effort: low
 ---
 
 # commit
