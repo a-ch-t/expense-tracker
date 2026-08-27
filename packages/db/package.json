@@ -15,11 +15,11 @@
     "dist"
   ],
   "scripts": {
-    "generate": "prisma generate",
-    "migrate": "prisma migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
-    "studio": "prisma studio",
-    "seed": "tsx prisma/seed.ts",
+    "generate": "DOTENV_CONFIG_QUIET=true prisma generate",
+    "migrate": "DOTENV_CONFIG_QUIET=true prisma migrate dev",
+    "migrate:deploy": "DOTENV_CONFIG_QUIET=true prisma migrate deploy",
+    "studio": "DOTENV_CONFIG_QUIET=true prisma studio",
+    "seed": "DOTENV_CONFIG_QUIET=true tsx prisma/seed.ts",
     "build": "npm run generate && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
