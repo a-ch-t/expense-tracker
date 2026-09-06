@@ -8,6 +8,10 @@ import { AppSidebar } from '@/widgets/app-sidebar';
 /**
  * Оболочка закрытых разделов: сайдбар и проверка сессии в одном месте — страницам
  * внутри группы остаётся только их собственное содержимое. Группа (app) на URL не влияет.
+ *
+ * Приложение лежит белой пластиной на сером столе: у экрана появляется край, и
+ * сводка перестаёт растекаться по всей ширине монитора. На узком экране полей нет —
+ * там пластина занимает весь экран, отступ по краям съел бы и без того тесную сетку.
  */
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
@@ -31,12 +35,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col md:flex-row">
-      <AppSidebar user={session.user} />
+    <div className="min-h-dvh md:h-dvh md:p-6 lg:p-8">
+      {/* На широком экране пластина занимает высоту окна, а прокручивается только
+          содержимое раздела — меню и профиль остаются на месте без sticky. */}
+      <div className="plate mx-auto flex min-h-dvh w-full max-w-6xl flex-col bg-background md:h-full md:min-h-0 md:flex-row md:rounded-3xl">
+        <AppSidebar user={session.user} />
 
-      <main className="flex-1 p-4 md:p-8">
-        <div className="mx-auto w-full max-w-3xl">{children}</div>
-      </main>
+        <main className="flex-1 p-5 md:overflow-y-auto md:p-8 md:pb-10 lg:p-10 lg:pb-12">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

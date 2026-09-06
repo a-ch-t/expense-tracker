@@ -27,7 +27,7 @@ export function NavLinks() {
 
   return (
     <nav aria-label="Разделы приложения">
-      <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+      <ul className="grid grid-cols-3 gap-1 md:flex md:flex-col md:gap-1.5">
         {LINKS.map(({ href, label, icon: Icon }) => {
           // Вложенные маршруты вроде /transactions/new тоже подсвечивают свой раздел
           const isActive = pathname === href || pathname.startsWith(`${href}/`);
@@ -38,14 +38,14 @@ export function NavLinks() {
                 href={href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap transition-colors',
-                  'focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                  'flex items-center justify-center gap-2 rounded-full px-2.5 py-2.5 text-xs whitespace-nowrap transition-colors md:justify-start md:gap-3 md:px-3.5 md:text-sm',
+                  'focus-visible:ring-[3px] focus-visible:ring-ring/20 focus-visible:outline-none',
                   isActive
-                    ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
-                    : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
+                    ? 'bg-primary font-semibold text-primary-foreground'
+                    : 'font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                 )}
               >
-                <Icon className="size-4 shrink-0" aria-hidden />
+                <Icon className="size-[1.125rem] shrink-0" aria-hidden />
                 {label}
               </Link>
             </li>

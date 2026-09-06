@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { getTransactions, SummaryCards, TransactionList } from '@/entities/transaction';
 import { ROUTES } from '@/shared/config/routes';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Pagination } from '@/shared/ui/pagination';
 
 /** Сколько операций показывает главный экран. */
@@ -43,31 +42,35 @@ export async function DashboardPage({ searchParams }: DashboardPageProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Главная</h1>
-        <p className="text-sm text-muted-foreground">Доходы и расходы за всё время</p>
-      </div>
+    <div className="flex flex-col gap-8">
+      <header>
+        <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">Главная</h1>
+        <p className="mt-1 text-muted-foreground">Доходы и расходы за всё время</p>
+      </header>
 
       <SummaryCards summary={summary} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Последние операции</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <TransactionList transactions={items} />
+      {/* Список лежит прямо на пластине: своя рамка вокруг него добавила бы вторую
+          границу внутри уже очерченного экрана. Разделяют строки, а не блоки. */}
+      <section className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="text-lg font-bold tracking-tight">Последние операции</h2>
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {pagination.total > 0 && `всего ${pagination.total}`}
+          </p>
+        </div>
 
-          {pagination.totalPages > 1 && (
-            <Pagination
-              page={pagination.page}
-              totalPages={pagination.totalPages}
-              basePath={ROUTES.dashboard}
-              className="justify-end"
-            />
-          )}
-        </CardContent>
-      </Card>
+        <TransactionList transactions={items} />
+
+        {pagination.totalPages > 1 && (
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            basePath={ROUTES.dashboard}
+            className="justify-end pt-2"
+          />
+        )}
+      </section>
     </div>
   );
 }

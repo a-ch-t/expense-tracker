@@ -12,20 +12,20 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
   const isIncome = type === 'income';
 
   return (
-    <li className="flex items-center gap-3 py-3">
+    <li className="flex items-center gap-4 py-4">
       <CategoryMark category={category} />
 
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{description}</p>
-        <p className="truncate text-xs text-muted-foreground">{category.name}</p>
+        <p className="truncate font-semibold">{description}</p>
+        <p className="truncate text-sm text-muted-foreground">{category.name}</p>
       </div>
 
       <div className="text-right">
-        <p className={cn('font-medium tabular-nums', isIncome && 'text-income')}>
+        <p className={cn('font-semibold tabular-nums', isIncome && 'text-income')}>
           {isIncome ? '+' : '−'}
           {formatMoney(amount)}
         </p>
-        <p className="text-xs text-muted-foreground tabular-nums">{formatDate(date)}</p>
+        <p className="text-sm text-muted-foreground tabular-nums">{formatDate(date)}</p>
       </div>
     </li>
   );
@@ -39,7 +39,7 @@ function CategoryMark({ category }: Pick<Transaction, 'category'>) {
   return (
     <span
       aria-hidden
-      className="flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+      className="flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-bold"
       // Цвет приходит из данных пользователя, поэтому только инлайн-стилем:
       // класса Tailwind под произвольный HEX не существует.
       style={{ backgroundColor: `${category.color}1f`, color: category.color }}
