@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { Card, CardContent, CardDescription, CardHeader } from '@/shared/ui/card';
 
 interface InDevelopmentProps {
   title: string;
@@ -8,18 +7,22 @@ interface InDevelopmentProps {
 }
 
 /**
- * Рамка раздела, которого ещё нет: заголовок и честное объяснение вместо пустого экрана.
- * Заголовок — настоящий h1, а не CardTitle (тот рендерит div): страница раздела
- * должна иметь одну структурную вершину, как у главного экрана.
+ * Раздел, которого ещё нет: заголовок страницы как у готовых разделов и честное
+ * объяснение вместо пустого экрана. Заголовок — настоящий h1: у страницы должна
+ * быть одна структурная вершина, где бы пользователь ни оказался.
  */
 export function InDevelopment({ title, description, children }: InDevelopmentProps) {
   return (
-    <Card>
-      <CardHeader>
-        <h1 className="leading-none font-semibold">{title}</h1>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      {children && <CardContent className="text-sm">{children}</CardContent>}
-    </Card>
+    <div className="flex flex-col gap-8">
+      <header>
+        <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">{title}</h1>
+        <p className="mt-1 text-muted-foreground">{description}</p>
+      </header>
+
+      <div className="flex max-w-xl flex-col gap-2 rounded-2xl bg-lilac p-6 text-lilac-foreground">
+        <p className="font-bold">Раздел ещё делается</p>
+        {children && <p className="text-sm">{children}</p>}
+      </div>
+    </div>
   );
 }

@@ -2,16 +2,24 @@
 
 import { useTransition } from 'react';
 import { Loader2, LogOut } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { logoutAction } from '../api/logout.action';
 
-export function LogoutButton() {
+interface LogoutButtonProps {
+  /** Кнопка стоит на тёмной карточке профиля, поэтому вид задаёт место, а не сама фича. */
+  className?: string;
+}
+
+export function LogoutButton({ className }: LogoutButtonProps) {
   const [isPending, startTransition] = useTransition();
 
   return (
     <Button
-      variant="outline"
+      variant="ghost"
+      size="sm"
       disabled={isPending}
+      className={cn('shrink-0', className)}
       onClick={() => {
         startTransition(async () => {
           await logoutAction();

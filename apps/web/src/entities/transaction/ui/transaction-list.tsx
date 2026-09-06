@@ -9,7 +9,7 @@ interface TransactionListProps {
 export function TransactionList({ transactions }: TransactionListProps) {
   if (transactions.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
+      <p className="rounded-2xl bg-secondary px-6 py-10 text-center text-sm text-muted-foreground">
         Здесь появятся доходы и расходы, как только вы их добавите.
       </p>
     );

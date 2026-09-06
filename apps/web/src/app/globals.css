@@ -4,6 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: var(--canvas);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -24,6 +27,12 @@
   --color-ring: var(--ring);
   --color-income: var(--income);
   --color-expense: var(--expense);
+  --color-mint: var(--mint);
+  --color-mint-foreground: var(--mint-foreground);
+  --color-lilac: var(--lilac);
+  --color-lilac-foreground: var(--lilac-foreground);
+  --color-peach: var(--peach);
+  --color-peach-foreground: var(--peach-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -37,85 +46,116 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Радиус растёт вместе с элементом: поле — 12px, карточка — 20px, пластина
+     приложения — 32px. Один общий радиус на всё уравнял бы кнопку и экран. */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+  --radius-3xl: calc(var(--radius) + 18px);
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.875rem;
+
+  /* Стол, на котором лежит приложение: холодный светло-серый. Белым остаётся сама
+     пластина — так у экрана появляется край, а не бесконечное белое поле. */
+  --canvas: oklch(0.945 0.004 285);
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.21 0.008 285);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.21 0.008 285);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --popover-foreground: oklch(0.21 0.008 285);
+  --primary: oklch(0.23 0.01 285);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.965 0.003 285);
+  --secondary-foreground: oklch(0.23 0.01 285);
+  --muted: oklch(0.965 0.003 285);
+  /* Темнее дефолтного 0.556: на белом тот давал ~3.7:1, а вторичный текст здесь
+     несёт названия категорий и даты — их читают, а не угадывают. */
+  --muted-foreground: oklch(0.49 0.01 285);
+  --accent: oklch(0.955 0.004 285);
+  --accent-foreground: oklch(0.23 0.01 285);
+  --destructive: oklch(0.55 0.19 22);
+
   /* Знак операции. Отдельные токены, а не chart-*: это статус записи, а не серия графика.
      Красным помечаются только итоги — красить каждую покупку значит кричать на пользователя. */
-  --income: oklch(0.52 0.13 155);
-  --expense: oklch(0.55 0.18 25);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --income: oklch(0.5 0.12 158);
+  --expense: oklch(0.53 0.18 20);
+
+  /* Три пастели сводки. Пара «фон + текст» задана целиком, а не прозрачностью от
+     насыщенного цвета: контраст подписи на пастели нужно держать под контролем. */
+  --mint: oklch(0.93 0.045 158);
+  --mint-foreground: oklch(0.42 0.09 158);
+  --lilac: oklch(0.92 0.04 268);
+  --lilac-foreground: oklch(0.42 0.11 268);
+  --peach: oklch(0.93 0.045 55);
+  --peach-foreground: oklch(0.52 0.15 35);
+
+  --border: oklch(0.925 0.004 285);
+  --input: oklch(0.91 0.004 285);
+  --ring: oklch(0.23 0.01 285);
+  --chart-1: oklch(0.5 0.12 158);
+  --chart-2: oklch(0.52 0.13 268);
+  --chart-3: oklch(0.6 0.13 55);
+  --chart-4: oklch(0.55 0.11 200);
+  --chart-5: oklch(0.53 0.14 330);
+
+  /* Сайдбар лежит внутри пластины и отделён оттенком, а не линией. */
+  --sidebar: oklch(0.975 0.003 285);
+  --sidebar-foreground: oklch(0.21 0.008 285);
+  --sidebar-primary: oklch(0.23 0.01 285);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.93 0.005 285);
+  --sidebar-accent-foreground: oklch(0.21 0.008 285);
+  --sidebar-border: oklch(0.92 0.004 285);
+  --sidebar-ring: oklch(0.23 0.01 285);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --income: oklch(0.75 0.15 155);
-  --expense: oklch(0.7 0.19 25);
+  --canvas: oklch(0.16 0.006 285);
+  --background: oklch(0.21 0.008 285);
+  --foreground: oklch(0.97 0.002 285);
+  --card: oklch(0.24 0.008 285);
+  --card-foreground: oklch(0.97 0.002 285);
+  --popover: oklch(0.24 0.008 285);
+  --popover-foreground: oklch(0.97 0.002 285);
+  --primary: oklch(0.97 0.002 285);
+  --primary-foreground: oklch(0.21 0.008 285);
+  --secondary: oklch(0.28 0.008 285);
+  --secondary-foreground: oklch(0.97 0.002 285);
+  --muted: oklch(0.28 0.008 285);
+  --muted-foreground: oklch(0.7 0.008 285);
+  --accent: oklch(0.3 0.008 285);
+  --accent-foreground: oklch(0.97 0.002 285);
+  --destructive: oklch(0.7 0.18 22);
+  --income: oklch(0.75 0.14 158);
+  --expense: oklch(0.72 0.17 20);
+  --mint: oklch(0.32 0.05 158);
+  --mint-foreground: oklch(0.85 0.09 158);
+  --lilac: oklch(0.32 0.05 268);
+  --lilac-foreground: oklch(0.85 0.08 268);
+  --peach: oklch(0.33 0.05 55);
+  --peach-foreground: oklch(0.87 0.08 55);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.7 0.008 285);
+  --chart-1: oklch(0.75 0.14 158);
+  --chart-2: oklch(0.7 0.13 268);
+  --chart-3: oklch(0.78 0.13 55);
+  --chart-4: oklch(0.72 0.11 200);
+  --chart-5: oklch(0.7 0.14 330);
+  --sidebar: oklch(0.24 0.008 285);
+  --sidebar-foreground: oklch(0.97 0.002 285);
+  --sidebar-primary: oklch(0.97 0.002 285);
+  --sidebar-primary-foreground: oklch(0.21 0.008 285);
+  --sidebar-accent: oklch(0.3 0.008 285);
+  --sidebar-accent-foreground: oklch(0.97 0.002 285);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.7 0.008 285);
 }
 
 @layer base {
@@ -124,6 +164,14 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-canvas text-foreground;
   }
+}
+
+@utility plate {
+  /* Единственная тень в интерфейсе — под пластиной приложения. Карточки внутри
+     разделены цветом, а не повторной тенью: иначе каждый блок «висит» сам по себе. */
+  box-shadow:
+    0 1px 2px oklch(0.21 0.008 285 / 4%),
+    0 18px 50px -24px oklch(0.21 0.008 285 / 18%);
 }
